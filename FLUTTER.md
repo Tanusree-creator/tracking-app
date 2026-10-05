@@ -272,3 +272,25 @@ SQL editor; the admin role is set via `app_metadata.role`.
 6. Notifications (local scheduling, then inbox)
 7. Reports and the admin dashboard
 8. Polish: animations, empty/error states, dark mode
+
+---
+
+## 11. Design system (implemented in `lib/core/theme` and `lib/core/widgets`)
+
+Premium feel comes from consistency, not effects. Never use raw numbers in screens; use the
+tokens in `core/theme/tokens.dart`.
+
+| Rule | Values |
+|---|---|
+| Spacing (`Space`) | 4, 8, 12, 16, 20, 24, 32 |
+| Type scale (`FontSizes`, via `Theme.textTheme`) | headline 28, title 22, subtitle 18, body 16, caption 13 |
+| Radius (`Radii`) | small 8, medium 16, large 24 |
+| Shadow (`AppShadows.soft`) | black 5% opacity, blur 20, offset (0, 8); none in dark mode |
+| Colour | One primary (blue), one accent (teal, `colorScheme.tertiary`), neutral surfaces; status colours come from these |
+| Motion (`Motion`) | 180 ms / 280 ms, `easeOutCubic`; only for feedback: button loading, error reveal (`AnimatedSize`), list/state switches (`AnimatedSwitcher`), shift status (`AnimatedContainer`) |
+| Dark mode | Separate background / surface / muted-text colours, tested against the same components |
+| Performance | `const` constructors, `select` on providers, `RepaintBoundary` around the live map, small widgets so GPS updates rebuild only the map |
+
+Reusable components: `AppCard`, `AppButton` (animated loading), `AppTextField`,
+`StatusPill`, `EmptyState`. Add new screens from these, not from raw Material widgets.
+Heavy UI packages are avoided; `google_fonts` (Inter) is the only styling dependency.

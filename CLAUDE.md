@@ -10,19 +10,22 @@ app. Full architecture, packages, use cases and notification design are in `FLUT
   page. Follow sibling modules, don't invent new patterns.
 - Session data goes through `core/storage/session_storage.dart` only.
 - Never put the Supabase service-role key in the app.
+- UI: use `Space`, `Radii`, `FontSizes`, `Motion` tokens and the `core/widgets` components. No raw spacing, radius or font-size numbers in screens.
 
 ## Modules
 
 | Module | Status |
 |---|---|
 | Architecture doc (`FLUTTER.md`) | Done |
-| core (theme, router, storage, location, notifications) | Not started |
-| auth | Not started |
-| employees | Not started |
-| shifts | Not started |
-| visits | Not started |
-| tracking | Not started |
-| reports | Not started |
-| notifications | Not started |
+| core (theme, router, session storage, location, notifications) | Built, analyzer clean, not run on a device |
+| auth (login, restore session, role redirect) | Built, untested against live Supabase |
+| employees (admin list + create login via Edge Function) | Built; Edge Function not deployed yet |
+| shifts + tracking (clock in/out, background GPS, TomTom map) | Built, untested on device; column names assumed |
+| notifications (1-hour visit reminders, tech + admin wording) | Built, untested on device |
+| visits (create/edit UI) | Not started (reminders read the existing `visits` table) |
+| reports (PDF) | Not started |
+
+Run: `flutter run --dart-define-from-file=env.json`. Needs JDK 17 for Android builds
+(Gradle 8.14 does not run on JDK 25).
 
 Update this table as work happens.
