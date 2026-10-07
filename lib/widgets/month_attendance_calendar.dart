@@ -40,6 +40,16 @@ class _MonthAttendanceCalendarState extends State<MonthAttendanceCalendar> {
     }
 
     return Column(children: [
+      const Padding(
+        padding: EdgeInsets.only(top: 8, bottom: 4),
+        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          _Dot(AppColors.green, 'Full day'),
+          SizedBox(width: 16),
+          _Dot(AppColors.amber, 'Partial'),
+          SizedBox(width: 16),
+          _Dot(AppColors.muted, 'No shift'),
+        ]),
+      ),
       TableCalendar(
         firstDay: DateTime(2023),
         lastDay: DateTime.now().add(const Duration(days: 365)),
@@ -48,18 +58,10 @@ class _MonthAttendanceCalendarState extends State<MonthAttendanceCalendar> {
         calendarBuilders: CalendarBuilders(
           defaultBuilder: (_, day, _) => cell(day),
           todayBuilder: (_, day, _) => cell(day, today: true),
-          outsideBuilder: (_, day, _) => Center(child: Text('${day.day}', style: const TextStyle(color: Color(0xFF3A4152)))),
+          outsideBuilder: (_, day, _) => Center(child: Text('${day.day}', style: TextStyle(color: AppColors.muted.withValues(alpha: .4)))),
         ),
         onPageChanged: (d) => setState(() => _focused = d),
       ),
-      const SizedBox(height: 8),
-      const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-        _Dot(AppColors.green, 'Full day'),
-        SizedBox(width: 16),
-        _Dot(AppColors.amber, 'Partial'),
-        SizedBox(width: 16),
-        _Dot(AppColors.muted, 'No shift'),
-      ]),
     ]);
   }
 }

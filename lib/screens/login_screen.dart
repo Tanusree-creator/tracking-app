@@ -3,9 +3,13 @@ import 'package:provider/provider.dart';
 
 import '../services/access_provider.dart';
 import '../theme/app_theme.dart';
+import '../widgets/anim.dart';
+import '../widgets/brand.dart';
 import '../widgets/common.dart';
 import 'admin/admin_shell.dart';
+import 'face_verify_screen.dart';
 import 'tech_shell.dart';
+import '../widgets/glass.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -41,8 +45,17 @@ class _LoginScreenState extends State<LoginScreen> {
       } else {
         await access.login(_email.text, _password.text, admin: _admin);
         if (!mounted) return;
-        Navigator.of(context).pushReplacement(MaterialPageRoute(
-            builder: (_) => _admin ? const AdminShell() : const TechShell()));
+        if (!_admin) {
+          // Employees prove it's them before entering the app.
+          final ok = await FaceVerifyScreen.run(context, FaceKind.signIn);
+          if (!mounted) return;
+          if (!ok) {
+            await access.logout();
+            setState(() => _error = 'Face verification is required to sign in.');
+            return;
+          }
+        }
+        Navigator.of(context).pushReplacement(slideRoute(_admin ? const AdminShell() : const TechShell()));
       }
     } catch (e) {
       setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
@@ -58,53 +71,61 @@ class _LoginScreenState extends State<LoginScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + MediaQuery.of(context).viewInsets.bottom),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
               child: Form(
                 key: _form,
                 child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                  const Icon(Icons.route_rounded, size: 44, color: AppColors.accent),
-                  const SizedBox(height: 12),
-                  Text(_register ? 'CREATE EMPLOYEE ACCOUNT' : 'SIGN IN TO ACCOUNT',
-                      style: t.titleLarge?.copyWith(fontWeight: FontWeight.w800, letterSpacing: .5)),
+                  Center(child: BrandLogo(size: 230, white: Theme.of(context).brightness == Brightness.dark)),
+                  const SizedBox(height: 8),
+                  const Text('Words that reach every reader', textAlign: TextAlign.center, style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w700, fontStyle: FontStyle.italic, letterSpacing: .4)),
+                  const SizedBox(height: 20),
+                  Text(_register ? 'Join the Merit team' : 'Welcome to Merit Publication',
+                      style: t.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
                   const SizedBox(height: 4),
                   Text(
                     _register
                         ? 'An admin must approve your request before you can sign in'
-                        : 'Sign in to view your assigned tasks',
+                        : 'Sign in to pick up today’s rounds and deliveries',
                     style: const TextStyle(color: AppColors.muted),
                   ),
                   const SizedBox(height: 24),
                   if (!_register)
                     SegmentedButton<bool>(
                       segments: const [
-                        ButtonSegment(value: false, label: Text('Employee Login'), icon: Icon(Icons.engineering)),
-                        ButtonSegment(value: true, label: Text('Admin Login'), icon: Icon(Icons.admin_panel_settings)),
+                        ButtonSegment(value: false, label: Text('Employee'), icon: Icon(Icons.engineering)),
+                        ButtonSegment(value: true, label: Text('Admin'), icon: Icon(Icons.admin_panel_settings)),
                       ],
                       selected: {_admin},
                       onSelectionChanged: (s) => setState(() => _admin = s.first),
                     ),
                   const SizedBox(height: 16),
                   if (_register) ...[
-                    TextFormField(
+                    GlowTextField(
                       controller: _name,
                       textCapitalization: TextCapitalization.words,
-                      decoration: const InputDecoration(labelText: 'Full Name', prefixIcon: Icon(Icons.person_outline)),
+                      textInputAction: TextInputAction.next,
+                      autofillHints: const [AutofillHints.name],
+                      decoration: const InputDecoration(labelText: 'Full name', prefixIcon: Icon(Icons.person_outline)),
                       validator: (v) => (v ?? '').trim().isEmpty ? 'Enter your name' : null,
                     ),
                     const SizedBox(height: 12),
                   ],
-                  TextFormField(
+                  GlowTextField(
                     controller: _email,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(labelText: 'Email Address', prefixIcon: Icon(Icons.mail_outline)),
+                    textInputAction: TextInputAction.next,
+                    autofillHints: const [AutofillHints.email],
+                    decoration: const InputDecoration(labelText: 'Email address', prefixIcon: Icon(Icons.mail_outline)),
                     validator: (v) => RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch((v ?? '').trim()) ? null : 'Enter a valid email',
                   ),
                   const SizedBox(height: 12),
-                  TextFormField(
+                  GlowTextField(
                     controller: _password,
                     obscureText: _hide,
+                    textInputAction: TextInputAction.done,
+                    autofillHints: [_register ? AutofillHints.newPassword : AutofillHints.password],
                     decoration: InputDecoration(
                       labelText: 'Password',
                       prefixIcon: const Icon(Icons.lock_outline),
@@ -153,7 +174,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: Text(_register ? 'Already approved? Sign in' : 'New employee? Register'),
                     ),
                 ]),
-              ),
+              ).enter(),
             ),
           ),
         ),

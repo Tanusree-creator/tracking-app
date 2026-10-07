@@ -33,7 +33,7 @@ class NotificationService {
       notificationDetails: const NotificationDetails(
         android: AndroidNotificationDetails(
           'fieldflow_alerts',
-          'FieldFlow Alerts',
+          'Merit Publication Alerts',
           channelDescription: 'Missed visit and shift alerts',
           importance: Importance.high,
           priority: Priority.high,

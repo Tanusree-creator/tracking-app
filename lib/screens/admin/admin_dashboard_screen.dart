@@ -4,17 +4,18 @@ import 'package:provider/provider.dart';
 
 import '../../models/models.dart';
 import '../../services/access_provider.dart';
-import '../../services/app_notifications_provider.dart';
-import '../../services/demo_data.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/anim.dart';
 import '../../widgets/common.dart';
-import '../../widgets/dark_tracking_map.dart';
+import '../../widgets/glass.dart';
+import '../../widgets/radar_orbit.dart';
+import '../../widgets/tn_calendar.dart';
+import '../leaderboard_screen.dart';
+import 'admin_activity_screen.dart';
+import 'admin_employee_detail_screen.dart';
 
-(String, Color) dutyStyle(DutyStatus s) => switch (s) {
-      DutyStatus.onDuty => ('On Duty', AppColors.green),
-      DutyStatus.onBreak => ('On Break', AppColors.amber),
-      DutyStatus.offDuty => ('Off', AppColors.muted),
-    };
+void _openEmployee(BuildContext context, Employee e) =>
+    Navigator.of(context).push(slideRoute(AdminEmployeeDetailScreen(e)));
 
 class AdminDashboardScreen extends StatelessWidget {
   const AdminDashboardScreen({super.key});
@@ -22,72 +23,100 @@ class AdminDashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final access = context.watch<AccessProvider>();
-    final alerts = context.watch<AppNotificationsProvider>().forAudience(AlertAudience.admin);
     final emps = access.approved;
-    final onDuty = emps.where((e) => e.status == DutyStatus.onDuty).toList();
-    final districts = <String, List<Employee>>{};
-    for (final e in emps) {
-      districts.putIfAbsent(e.district, () => []).add(e);
-    }
-    final today = DateTime.now();
-    final doneToday = emps.fold(0, (a, e) => a + DemoData.visitsDone(e.id, today));
-    final doneMonth = emps.fold(0, (a, e) => a + DemoData.month(e.id, today).fold(0, (b, d) => b + DemoData.visitsDone(e.id, d.date)));
+    final onDuty = emps.where((e) => e.status == DutyStatus.onDuty).length;
+    final onBreak = emps.where((e) => e.status == DutyStatus.onBreak).length;
+    final off = emps.length - onDuty - onBreak;
+    final lost = emps.where((e) => e.status == DutyStatus.onDuty && !e.isLive).length;
+    final unread = emps.fold(0, (a, e) => a + e.unread);
+    final updated = access.lastUpdated ?? DateTime.now();
+    final share = emps.isEmpty ? 0.0 : (onDuty + onBreak) / emps.length;
+    final t = Theme.of(context).textTheme;
 
     return RefreshIndicator(
       onRefresh: access.refresh,
-      child: ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 24), children: [
-        StatGrid([
-          StatTile(icon: Icons.engineering, value: '${onDuty.length}', label: 'Technicians On Duty', color: AppColors.green),
-          StatTile(icon: Icons.groups, value: '${districts.entries.where((d) => d.value.any((e) => e.status == DutyStatus.onDuty)).length}', label: 'Active Teams'),
-          StatTile(icon: Icons.assignment, value: '${doneMonth + emps.length * 2}', label: 'Total Jobs', color: AppColors.amber),
-          StatTile(icon: Icons.task_alt, value: '$doneMonth', label: 'Completed Visits', color: const Color(0xFF4FC3F7)),
+      child: ListView(physics: const AlwaysScrollableScrollPhysics(), padding: Sp.screen, children: [
+        Row(children: [
+          Expanded(
+            child: Text('Team on the field', style: t.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+          ),
+          Text('Updated ${DateFormat('HH:mm').format(updated)}', style: const TextStyle(color: AppColors.muted, fontSize: 12)),
         ]),
-        const SizedBox(height: 12),
-        StatTile(icon: Icons.check_circle_outline, value: '$doneToday', label: 'Visits Done Today', color: AppColors.green),
-        const SectionTitle('Live Field Deployment Map'),
-        DarkTrackingMap(
-          center: DemoData.center,
-          zoom: 12,
-          height: 280,
-          markers: [
-            for (final e in onDuty) MapMarker(DemoData.position(e), e.name),
-            for (final e in emps.where((e) => e.status == DutyStatus.onBreak))
-              MapMarker(DemoData.position(e), '${e.name} (break)', color: AppColors.amber),
-          ],
-        ),
-        const SectionTitle('Team Activity'),
-        for (final a in alerts.take(6))
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Card(
-              child: ListTile(
-                leading: const CircleAvatar(backgroundColor: AppColors.surfaceHigh, child: Icon(Icons.bolt, color: AppColors.accent)),
-                title: Text(a.title, style: const TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: Text(a.body),
-                trailing: Text(DateFormat('h:mm a').format(a.time), style: const TextStyle(color: AppColors.muted, fontSize: 12)),
+        const SizedBox(height: 4),
+        const Text('Tap a team member to see their visits, attendance and routes.', style: TextStyle(color: AppColors.muted, fontSize: 13)),
+        const SizedBox(height: Sp.m),
+        RadarOrbit(employees: emps, photoOf: access.avatarOf, onTap: (e) => _openEmployee(context, e)).enter(),
+        const SizedBox(height: Sp.l),
+        const TnCalendarCard().enter(1),
+        const SizedBox(height: Sp.l),
+        GlassCard(
+          child: Padding(
+            padding: const EdgeInsets.all(Sp.l),
+            child: Row(children: [
+              DonutProgress(
+                value: share,
+                size: 110,
+                stroke: 12,
+                center: CountUp(share * 100, suffix: '%', style: t.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
               ),
-            ),
-          ),
-        const SectionTitle('Active Team Status'),
-        for (final d in districts.entries) ...[
-          Padding(
-            padding: const EdgeInsets.only(bottom: 6, top: 4),
-            child: Text(d.key, style: const TextStyle(color: AppColors.muted, fontWeight: FontWeight.w600)),
-          ),
-          Card(
-            child: Column(children: [
-              for (final e in d.value)
-                ListTile(
-                  dense: true,
-                  leading: CircleAvatar(radius: 16, backgroundColor: AppColors.surfaceHigh, child: Text(e.initials, style: const TextStyle(fontSize: 12))),
-                  title: Text(e.name),
-                  trailing: StatusChip(dutyStyle(e.status).$1, dutyStyle(e.status).$2),
-                ),
+              const SizedBox(width: Sp.l),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('On shift now', style: t.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 10),
+                  _Row(AppColors.green, 'On duty', onDuty),
+                  _Row(AppColors.amber, 'On break', onBreak),
+                  _Row(AppColors.muted, 'Off duty', off),
+                  if (lost > 0) _Row(AppColors.red, 'Tracking lost', lost),
+                ]),
+              ),
             ]),
           ),
-          const SizedBox(height: 8),
-        ],
+        ).enter(1),
+        const SizedBox(height: Sp.m),
+        StatGrid([
+          StatTile(icon: Icons.groups_outlined, value: '${emps.length}', label: 'Employees'),
+          StatTile(icon: Icons.mark_chat_unread_outlined, value: '$unread', label: 'Unread messages', color: AppColors.blue400),
+        ]),
+        const SizedBox(height: Sp.m),
+        GlassCard(
+          onTap: () => Navigator.of(context).push(slideRoute(const LeaderboardScreen())),
+          child: const Padding(
+            padding: EdgeInsets.all(Sp.l),
+            child: Row(children: [
+              Icon(Icons.emoji_events, color: Color(0xFFF5B301), size: 30),
+              SizedBox(width: Sp.l),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Weekly leaderboard', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                  Text('Who closed the most visits this week. Set the daily target here.', style: TextStyle(color: AppColors.muted, fontSize: 13)),
+                ]),
+              ),
+              Icon(Icons.chevron_right, color: AppColors.muted),
+            ]),
+          ),
+        ).enter(2),
+        const SizedBox(height: Sp.m),
+        RecentActivityCard(onTap: () => Navigator.of(context).push(slideRoute(const AdminActivityScreen()))).enter(3),
       ]),
     );
   }
+}
+
+class _Row extends StatelessWidget {
+  final Color color;
+  final String label;
+  final int n;
+  const _Row(this.color, this.label, this.n);
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Row(children: [
+          Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+          const SizedBox(width: 8),
+          Expanded(child: Text(label)),
+          CountUp(n.toDouble(), style: const TextStyle(fontWeight: FontWeight.w700)),
+        ]),
+      );
 }

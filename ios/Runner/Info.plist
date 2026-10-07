@@ -2,6 +2,14 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSCameraUsageDescription</key>
+	<string>Merit Publication uses the camera to verify your face and to photograph visited places.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Merit Publication tracks your location during your shift.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Merit Publication keeps tracking your location during your shift, even in the background.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Choose a photo of the visited place.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

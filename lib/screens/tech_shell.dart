@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/models.dart';
 import '../services/access_provider.dart';
 import '../services/tracking_provider.dart';
+import '../widgets/glass.dart';
 import '../widgets/sticky_notification_banner.dart';
 import 'history_screen.dart';
 import 'home_screen.dart';
@@ -32,19 +33,20 @@ class _TechShellState extends State<TechShell> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
+        extendBody: true,
         body: Column(children: [
           const StickyNotificationBanner(audience: AlertAudience.employee),
           Expanded(child: IndexedStack(index: _i, children: _pages)),
         ]),
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: _i,
-          onDestinationSelected: (i) => setState(() => _i = i),
-          destinations: const [
-            NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
-            NavigationDestination(icon: Icon(Icons.checklist_outlined), selectedIcon: Icon(Icons.checklist), label: 'Tasks'),
-            NavigationDestination(icon: Icon(Icons.my_location_outlined), selectedIcon: Icon(Icons.my_location), label: 'Tracking'),
-            NavigationDestination(icon: Icon(Icons.calendar_month_outlined), selectedIcon: Icon(Icons.calendar_month), label: 'History'),
-            NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
+        bottomNavigationBar: GlassBottomNav(
+          index: _i,
+          onChanged: (i) => setState(() => _i = i),
+          items: const [
+            GlassNavItem(Icons.home_outlined, Icons.home, 'Home'),
+            GlassNavItem(Icons.checklist_outlined, Icons.checklist, 'Tasks'),
+            GlassNavItem(Icons.my_location_outlined, Icons.my_location, 'Tracking'),
+            GlassNavItem(Icons.calendar_month_outlined, Icons.calendar_month, 'History'),
+            GlassNavItem(Icons.person_outline, Icons.person, 'Profile'),
           ],
         ),
       );

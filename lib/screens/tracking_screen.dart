@@ -2,80 +2,146 @@ import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 
+import '../models/models.dart';
 import '../services/demo_data.dart';
 import '../services/location_service.dart';
 import '../services/tracking_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
 import '../widgets/dark_tracking_map.dart';
+import '../widgets/map_pins.dart';
+import '../widgets/glass.dart';
 
-class TrackingScreen extends StatelessWidget {
+class TrackingScreen extends StatefulWidget {
   const TrackingScreen({super.key});
+
+  @override
+  State<TrackingScreen> createState() => _TrackingScreenState();
+}
+
+class _TrackingScreenState extends State<TrackingScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Silent: shows the device position if permission is already granted.
+    WidgetsBinding.instance.addPostFrameCallback((_) => context.read<TrackingProvider>().locateOnce());
+  }
+
+  (String, Color, IconData) _state(TrackingProvider tr) {
+    if (tr.locationIssue == LocationIssue.servicesDisabled) return ('GPS off', AppColors.red, Icons.location_disabled);
+    if (tr.locationIssue != null) return ('Permission missing', AppColors.red, Icons.block);
+    if (tr.sharing && tr.signalLost) return ('Lost signal', AppColors.amber, Icons.signal_cellular_connected_no_internet_0_bar);
+    if (tr.sharing && tr.paused) return ('Paused', AppColors.amber, Icons.pause_circle);
+    if (tr.sharing) return ('Tracking active', AppColors.green, Icons.my_location);
+    return ('Not sharing', AppColors.muted, Icons.location_searching);
+  }
 
   @override
   Widget build(BuildContext context) {
     final tr = context.watch<TrackingProvider>();
     final route = [for (final p in tr.points) LatLng(p.lat, p.lng)];
-    final center = route.isEmpty ? DemoData.center : route.last;
+    final here = tr.current ?? (route.isEmpty ? null : route.last);
+    final (stateLabel, stateColor, stateIcon) = _state(tr);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Live Location', style: TextStyle(fontWeight: FontWeight.w700))),
-      body: ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 24), children: [
-        Card(
+      body: ListView(padding: Sp.screen, children: [
+        GlassCard(
           child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(children: [
-              Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(tr.sharing ? 'Stop Sharing Location' : 'Start Sharing Location',
-                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-                  const SizedBox(height: 2),
-                  Text(tr.sharing ? 'Your admin can see where you are' : 'Share your position while on shift',
-                      style: const TextStyle(color: AppColors.muted, fontSize: 13)),
-                ]),
-              ),
-              Switch(value: tr.sharing, onChanged: (v) => v ? tr.startSharing() : tr.stopSharing()),
+            padding: const EdgeInsets.all(Sp.l),
+            child: Column(children: [
+              Row(children: [
+                const Icon(Icons.my_location, color: AppColors.accent),
+                const SizedBox(width: Sp.m),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Text('Live tracking', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                    const SizedBox(height: 2),
+                    Text(
+                      tr.clockedIn
+                          ? (tr.onBreak ? 'Paused while you are on break' : 'Your admin can see where you are')
+                          : 'Starts automatically when you clock in',
+                      style: const TextStyle(color: AppColors.muted, fontSize: 13),
+                    ),
+                  ]),
+                ),
+              ]),
+              const SizedBox(height: Sp.m),
+              Align(alignment: Alignment.centerLeft, child: StatusChip(stateLabel, stateColor, icon: stateIcon)),
             ]),
           ),
         ),
         if (tr.locationError != null) ...[
-          const SizedBox(height: 12),
+          const SizedBox(height: Sp.m),
           _Banner(
             icon: Icons.location_off,
             color: AppColors.red,
             text: tr.locationError!,
-            action: tr.locationIssue == LocationIssue.deniedForever ? ('Settings', LocationService.openSettings) : null,
+            action: tr.locationIssue == LocationIssue.deniedForever
+                ? ('Settings', LocationService.openSettings)
+                : ('Enable', () => tr.locateOnce(prompt: true)),
           ),
         ],
         if (tr.signalLost) ...[
-          const SizedBox(height: 12),
-          const _Banner(icon: Icons.signal_cellular_connected_no_internet_0_bar, color: AppColors.amber, text: 'Lost location signal.'),
+          const SizedBox(height: Sp.m),
+          const _Banner(icon: Icons.signal_cellular_connected_no_internet_0_bar, color: AppColors.amber, text: 'No location for 3 minutes. Check GPS, then battery settings below.'),
         ],
-        const SizedBox(height: 12),
+        const SizedBox(height: Sp.m),
         DarkTrackingMap(
-          center: center,
+          center: here ?? DemoData.center,
           height: 320,
+          zoom: here == null ? 11 : 15,
           route: route,
-          markers: route.isEmpty ? const [] : [MapMarker(route.last, 'You')],
+          markers: here == null ? const [] : [MapMarker(here, 'You')],
+          extraMarkers: visitMarkers(context, tr.visits.where((v) => v.status != VisitStatus.completed || v.completedAt != null && DateUtils.isSameDay(v.completedAt, DateTime.now())).toList()),
         ),
-        const SizedBox(height: 12),
-        if (route.isEmpty)
-          const EmptyState(Icons.location_searching, 'No location data yet today')
-        else
+        const SizedBox(height: Sp.s),
+        const PinLegend(),
+        const SizedBox(height: Sp.m),
+        if (here == null && tr.locationError == null)
+          GlassCard(
+            child: Padding(
+              padding: const EdgeInsets.all(Sp.l),
+              child: Column(children: [
+                const Icon(Icons.location_searching, size: 40, color: AppColors.muted),
+                const SizedBox(height: Sp.s),
+                const Text('No location data yet today', style: TextStyle(color: AppColors.muted)),
+                const SizedBox(height: Sp.m),
+                OutlinedButton.icon(
+                  onPressed: () => tr.locateOnce(prompt: true),
+                  icon: const Icon(Icons.my_location),
+                  label: const Text('Enable location'),
+                ),
+              ]),
+            ),
+          )
+        else if (route.isNotEmpty)
           Row(children: [
             Expanded(child: StatTile(icon: Icons.route, value: '${tr.distanceTodayKm.toStringAsFixed(2)} km', label: 'Distance Travelled')),
-            const SizedBox(width: 12),
+            const SizedBox(width: Sp.m),
             Expanded(child: StatTile(icon: Icons.pin_drop, value: '${route.length}', label: 'Points Recorded', color: AppColors.green)),
           ]),
-        if (tr.sharing) ...[
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: tr.togglePause,
-            icon: Icon(tr.paused ? Icons.play_arrow : Icons.pause),
-            label: Text(tr.paused ? 'Resume' : 'Pause'),
-            style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+        const SizedBox(height: Sp.l),
+        GlassCard(
+          child: Padding(
+            padding: const EdgeInsets.all(Sp.l),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Icon(Icons.battery_saver, color: AppColors.amber),
+              const SizedBox(width: Sp.m),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('Keep tracking running', style: TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: Sp.xs),
+                  const Text(
+                    'Some phones stop apps in the background. Allow location "all the time" and set battery usage for Merit Publication to "Unrestricted".',
+                    style: TextStyle(color: AppColors.muted, fontSize: 13),
+                  ),
+                  TextButton(onPressed: LocationService.openSettings, child: const Text('Open app settings')),
+                ]),
+              ),
+            ]),
           ),
-        ],
+        ),
       ]),
     );
   }
@@ -90,7 +156,7 @@ class _Banner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(Sp.m),
         decoration: BoxDecoration(color: color.withValues(alpha: .12), borderRadius: BorderRadius.circular(14)),
         child: Row(children: [
           Icon(icon, color: color),

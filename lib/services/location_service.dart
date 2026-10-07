@@ -27,19 +27,32 @@ class LocationService {
     }
   }
 
-  /// Position stream backed by an Android foreground service so tracking continues in background.
+  static Future<bool> isAllowed() async {
+    if (!await Geolocator.isLocationServiceEnabled()) return false;
+    final p = await Geolocator.checkPermission();
+    return p == LocationPermission.whileInUse || p == LocationPermission.always;
+  }
+
+  static Future<Position> currentPosition() => Geolocator.getCurrentPosition(
+      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, timeLimit: Duration(seconds: 15)));
+
+  /// High-accuracy stream backed by an Android foreground service so tracking continues
+  /// with the screen off or the app in the background.
   static Stream<Position> stream() => Geolocator.getPositionStream(
         locationSettings: AndroidSettings(
-          accuracy: LocationAccuracy.high,
+          accuracy: LocationAccuracy.bestForNavigation,
           distanceFilter: 10,
-          intervalDuration: const Duration(seconds: 10),
+          intervalDuration: const Duration(seconds: 5),
           foregroundNotificationConfig: const ForegroundNotificationConfig(
-            notificationTitle: 'FieldFlow',
-            notificationText: 'Sharing your live location',
+            notificationTitle: 'Shift in progress',
+            notificationText: 'Location tracking is active',
             enableWakeLock: true,
           ),
         ),
       );
+
+  /// True once "Allow all the time" has been granted.
+  static Future<bool> hasBackgroundAccess() async => (await Geolocator.checkPermission()) == LocationPermission.always;
 
   static double distanceM(double lat1, double lng1, double lat2, double lng2) =>
       Geolocator.distanceBetween(lat1, lng1, lat2, lng2);

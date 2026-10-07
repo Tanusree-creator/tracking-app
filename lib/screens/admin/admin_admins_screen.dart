@@ -4,7 +4,9 @@ import 'package:intl/intl.dart';
 
 import '../../services/api.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/anim.dart';
 import '../../widgets/common.dart';
+import '../../widgets/glass.dart';
 
 class AdminAdminsScreen extends StatefulWidget {
   const AdminAdminsScreen({super.key});
@@ -14,90 +16,111 @@ class AdminAdminsScreen extends StatefulWidget {
 }
 
 class _AdminAdminsScreenState extends State<AdminAdminsScreen> {
-  late Future<List<Map<String, dynamic>>> _future = Api.admins();
+  List<Map<String, dynamic>>? _list;
+  String? _error;
 
-  void _reload() => setState(() => _future = Api.admins());
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
 
-  Future<void> _delete(Map<String, dynamic> a) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Remove admin?'),
-        content: Text('${a['email']} will no longer be able to sign in.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.red, minimumSize: const Size(100, 44)),
-            child: const Text('Remove'),
-          ),
-        ],
-      ),
-    );
-    if (ok != true) return;
+  Future<void> _load() async {
     try {
-      await Api.deleteAdmin(a['id'] as String);
-      _reload();
+      final l = await Api.admins();
+      if (mounted) {
+        setState(() {
+          _list = l;
+          _error = null;
+        });
+      }
     } catch (e) {
-      if (mounted) snack(context, e.toString().replaceFirst('Exception: ', ''));
+      if (mounted) {
+        setState(() => _error = '${e.toString().replaceFirst('Exception: ', '')}\n\nIf this says a function does not exist, run supabase/002_admin_management.sql in the Supabase SQL Editor.');
+      }
     }
   }
 
+  Future<void> _delete(Map<String, dynamic> a) async {
+    if (!await confirm(context, 'Remove admin?', '${a['email']} will no longer be able to sign in.', action: 'Remove', danger: true)) return;
+    try {
+      await Api.deleteAdmin(a['id'] as String);
+      _load();
+    } catch (e) {
+      if (mounted) toast(context, e.toString().replaceFirst('Exception: ', ''), type: ToastType.error);
+    }
+  }
+
+  Future<void> _new() async {
+    final created = await Navigator.of(context).push<bool>(slideRoute(const NewAdminScreen()));
+    if (created == true) _load();
+  }
+
   @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Admins')),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: () async {
-            final created = await showDialog<bool>(context: context, builder: (_) => const _CreateAdminDialog());
-            if (created == true) _reload();
-          },
-          icon: const Icon(Icons.person_add_alt_1),
-          label: const Text('New Admin'),
-        ),
-        body: FutureBuilder(
-          future: _future,
-          builder: (context, snap) {
-            if (snap.hasError) return ErrorState(snap.error.toString().replaceFirst('Exception: ', ''), _reload);
-            if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-            final list = snap.data!;
-            return ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-              itemCount: list.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 8),
-              itemBuilder: (_, i) {
-                final a = list[i];
-                final me = a['is_me'] == true;
-                return Card(
-                  child: ListTile(
-                    leading: const CircleAvatar(backgroundColor: AppColors.surfaceHigh, child: Icon(Icons.admin_panel_settings, color: AppColors.accent)),
-                    title: Text(a['email'], style: const TextStyle(fontWeight: FontWeight.w600)),
-                    subtitle: Text('Added ${DateFormat('d MMM y').format(DateTime.parse(a['created_at']).toLocal())}'),
-                    trailing: me
-                        ? const StatusChip('You', AppColors.accent)
-                        : IconButton(icon: const Icon(Icons.delete_outline, color: AppColors.red), onPressed: () => _delete(a)),
+  Widget build(BuildContext context) {
+    final list = _list;
+    return Scaffold(
+      appBar: AppBar(title: const Text('Admins', style: TextStyle(fontWeight: FontWeight.w700))),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _new,
+        icon: const Icon(Icons.person_add_alt_1),
+        label: const Text('New admin'),
+      ),
+      body: _error != null
+          ? ErrorState(_error!, _load)
+          : list == null
+              ? const Center(child: CircularProgressIndicator())
+              : RefreshIndicator(
+                  onRefresh: _load,
+                  child: ListView.separated(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
+                    itemCount: list.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 10),
+                    itemBuilder: (_, i) {
+                      final a = list[i];
+                      final me = a['is_me'] == true;
+                      return GlassCard(
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          leading: const CircleAvatar(backgroundColor: AppColors.surfaceHigh, child: Icon(Icons.admin_panel_settings, color: AppColors.accent)),
+                          title: Text(a['email'] as String, style: const TextStyle(fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis),
+                          subtitle: Text('Added ${DateFormat('d MMM y').format(DateTime.parse(a['created_at'] as String).toLocal())}'),
+                          trailing: me
+                              ? const StatusChip('You', AppColors.accent)
+                              : IconButton(icon: const Icon(Icons.delete_outline, color: AppColors.red), onPressed: () => _delete(a)),
+                        ),
+                      ).enter(i);
+                    },
                   ),
-                );
-              },
-            );
-          },
-        ),
-      );
+                ),
+    );
+  }
 }
 
-class _CreateAdminDialog extends StatefulWidget {
-  const _CreateAdminDialog();
+/// Full-screen "new admin" form; shows the credentials once created.
+class NewAdminScreen extends StatefulWidget {
+  const NewAdminScreen({super.key});
 
   @override
-  State<_CreateAdminDialog> createState() => _CreateAdminDialogState();
+  State<NewAdminScreen> createState() => _NewAdminScreenState();
 }
 
-class _CreateAdminDialogState extends State<_CreateAdminDialog> {
+class _NewAdminScreenState extends State<NewAdminScreen> {
   final _form = GlobalKey<FormState>();
   final _email = TextEditingController();
   final _password = TextEditingController();
   bool _busy = false;
+  bool _hide = true;
   String? _error;
   Map<String, dynamic>? _created;
+
+  @override
+  void dispose() {
+    _email.dispose();
+    _password.dispose();
+    super.dispose();
+  }
 
   Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
@@ -107,9 +130,9 @@ class _CreateAdminDialogState extends State<_CreateAdminDialog> {
     });
     try {
       final res = await Api.createAdmin(_email.text, _password.text);
-      setState(() => _created = res);
+      if (mounted) setState(() => _created = res);
     } catch (e) {
-      setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
+      if (mounted) setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -118,58 +141,80 @@ class _CreateAdminDialogState extends State<_CreateAdminDialog> {
   @override
   Widget build(BuildContext context) {
     final c = _created;
-    if (c != null) {
-      final text = 'Email: ${c['email']}\nPassword: ${c['password']}';
-      return AlertDialog(
-        icon: const Icon(Icons.check_circle, color: AppColors.green, size: 40),
-        title: const Text('Admin created'),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Text('Share these credentials now. The password is not shown again.', textAlign: TextAlign.center),
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(color: AppColors.surfaceHigh, borderRadius: BorderRadius.circular(12)),
-            child: SelectableText(text),
-          ),
-        ]),
-        actions: [
-          TextButton.icon(
-            onPressed: () {
-              Clipboard.setData(ClipboardData(text: text));
-              snack(context, 'Copied');
-            },
-            icon: const Icon(Icons.copy, size: 18),
-            label: const Text('Copy'),
-          ),
-          FilledButton(onPressed: () => Navigator.pop(context, true), style: FilledButton.styleFrom(minimumSize: const Size(80, 44)), child: const Text('Done')),
-        ],
-      );
-    }
-    return AlertDialog(
-      title: const Text('New Admin'),
-      content: Form(
-        key: _form,
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextFormField(
-            controller: _email,
-            keyboardType: TextInputType.emailAddress,
-            decoration: const InputDecoration(labelText: 'Email'),
-            validator: (v) => RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch((v ?? '').trim()) ? null : 'Enter a valid email',
-          ),
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: _password,
-            decoration: const InputDecoration(labelText: 'Password', helperText: 'Leave blank to auto-generate'),
-            validator: (v) => (v ?? '').isNotEmpty && v!.length < 8 ? 'At least 8 characters' : null,
-          ),
-          if (_error != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(_error!, style: const TextStyle(color: AppColors.red))),
+    return Scaffold(
+      appBar: AppBar(title: Text(c == null ? 'New admin' : 'Admin created')),
+      body: SafeArea(
+        child: ListView(padding: const EdgeInsets.all(20), children: [
+          if (c != null) ...[
+            const SizedBox(height: 12),
+            const Icon(Icons.check_circle, color: AppColors.green, size: 64),
+            const SizedBox(height: 16),
+            const Text('Share these credentials now. The password is not shown again.', textAlign: TextAlign.center),
+            const SizedBox(height: 16),
+            GlassCard(
+              child: Padding(
+                padding: const EdgeInsets.all(18),
+                child: SelectableText('Email: ${c['email']}\nPassword: ${c['password']}', style: const TextStyle(fontSize: 16, height: 1.6)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: 'Email: ${c['email']}\nPassword: ${c['password']}'));
+                snack(context, 'Copied');
+              },
+              icon: const Icon(Icons.copy, size: 18),
+              label: const Text('Copy'),
+              style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+            ),
+            const SizedBox(height: 10),
+            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Done')),
+          ] else
+            Form(
+              key: _form,
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                const Text('The new admin can sign in with these details and manage employees, tasks and reports.', style: TextStyle(color: AppColors.muted)),
+                const SizedBox(height: 20),
+                GlowTextField(
+                  controller: _email,
+                  keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(labelText: 'Email address', prefixIcon: Icon(Icons.mail_outline)),
+                  validator: (v) => RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch((v ?? '').trim()) ? null : 'Enter a valid email',
+                ),
+                const SizedBox(height: 14),
+                GlowTextField(
+                  controller: _password,
+                  obscureText: _hide,
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    helperText: 'Leave blank to auto-generate a strong one',
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    suffixIcon: IconButton(icon: Icon(_hide ? Icons.visibility : Icons.visibility_off), onPressed: () => setState(() => _hide = !_hide)),
+                  ),
+                  validator: (v) => (v ?? '').isNotEmpty && v!.length < 8 ? 'At least 8 characters' : null,
+                  onFieldSubmitted: (_) => _save(),
+                ),
+                if (_error != null)
+                  Container(
+                    margin: const EdgeInsets.only(top: 14),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(color: AppColors.red.withValues(alpha: .12), borderRadius: BorderRadius.circular(12)),
+                    child: Row(children: [
+                      const Icon(Icons.error_outline, color: AppColors.red, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(_error!, style: const TextStyle(color: AppColors.red))),
+                    ]),
+                  ),
+                const SizedBox(height: 22),
+                FilledButton(
+                  onPressed: _busy ? null : _save,
+                  child: _busy ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Create admin'),
+                ),
+              ]),
+            ),
         ]),
       ),
-      actions: [
-        TextButton(onPressed: _busy ? null : () => Navigator.pop(context), child: const Text('Cancel')),
-        FilledButton(onPressed: _busy ? null : _save, style: FilledButton.styleFrom(minimumSize: const Size(120, 44)), child: const Text('Create')),
-      ],
     );
   }
 }

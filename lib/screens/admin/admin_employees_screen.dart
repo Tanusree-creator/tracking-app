@@ -4,9 +4,12 @@ import 'package:provider/provider.dart';
 
 import '../../services/access_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/anim.dart';
+import '../../widgets/avatar.dart';
 import '../../widgets/common.dart';
-import 'admin_dashboard_screen.dart' show dutyStyle;
 import 'admin_employee_detail_screen.dart';
+import 'admin_live_map_screen.dart';
+import '../../widgets/glass.dart';
 
 class AdminEmployeesScreen extends StatefulWidget {
   const AdminEmployeesScreen({super.key});
@@ -26,17 +29,32 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
         .toList();
 
     return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 84),
+        child: FloatingActionButton.extended(
         onPressed: () => showDialog(context: context, builder: (_) => const _CreateUserDialog()),
         icon: const Icon(Icons.person_add),
         label: const Text('New Employee'),
       ),
+      ),
       body: Column(children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-          child: TextField(
+          child: GlowTextField(
             decoration: const InputDecoration(hintText: 'Look Up employee', prefixIcon: Icon(Icons.search)),
             onChanged: (v) => setState(() => _q = v.trim().toLowerCase()),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: GlassCard(
+            onTap: () => Navigator.of(context).push(slideRoute(const AdminLiveMapScreen())),
+            child: ListTile(
+              leading: const CircleAvatar(backgroundColor: AppColors.surfaceHigh, child: Icon(Icons.map_outlined, color: AppColors.accent)),
+              title: const Text('Live field map', style: TextStyle(fontWeight: FontWeight.w700)),
+              subtitle: const Text('Where everyone is now, plus task locations'),
+              trailing: const Icon(Icons.chevron_right, color: AppColors.muted),
+            ),
           ),
         ),
         Padding(
@@ -53,17 +71,17 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                   separatorBuilder: (_, _) => const SizedBox(height: 8),
                   itemBuilder: (_, i) {
                     final e = list[i];
-                    final (label, color) = dutyStyle(e.status);
-                    return Card(
+                    final (label, color, icon) = dutyStyle(e.status);
+                    return GlassCard(
                       clipBehavior: Clip.antiAlias,
                       child: ListTile(
-                        leading: CircleAvatar(backgroundColor: AppColors.surfaceHigh, child: Text(e.initials)),
+                        leading: UserAvatar(photo: access.avatarOf(e.id), initials: e.initials, radius: 22),
                         title: Text(e.name, style: const TextStyle(fontWeight: FontWeight.w600)),
                         subtitle: Text('${e.title} · ${e.district}'),
-                        trailing: StatusChip(label, color),
-                        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => AdminEmployeeDetailScreen(e))),
+                        trailing: StatusChip(label, color, icon: icon),
+                        onTap: () => Navigator.of(context).push(slideRoute(AdminEmployeeDetailScreen(e))),
                       ),
-                    );
+                    ).enter(i);
                   },
                 ),
         ),
@@ -140,11 +158,11 @@ class _CreateUserDialogState extends State<_CreateUserDialog> {
       content: Form(
         key: _form,
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextFormField(controller: _name, textCapitalization: TextCapitalization.words, decoration: const InputDecoration(labelText: 'Name'), validator: (v) => (v ?? '').trim().isEmpty ? 'Required' : null),
+          GlowTextField(controller: _name, textCapitalization: TextCapitalization.words, decoration: const InputDecoration(labelText: 'Name'), validator: (v) => (v ?? '').trim().isEmpty ? 'Required' : null),
           const SizedBox(height: 12),
-          TextFormField(controller: _email, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Email'), validator: (v) => RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch((v ?? '').trim()) ? null : 'Enter a valid email'),
+          GlowTextField(controller: _email, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Email'), validator: (v) => RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch((v ?? '').trim()) ? null : 'Enter a valid email'),
           const SizedBox(height: 12),
-          TextFormField(controller: _password, decoration: const InputDecoration(labelText: 'Password', helperText: 'Leave blank to auto-generate'), validator: (v) => (v ?? '').isNotEmpty && v!.length < 8 ? 'At least 8 characters' : null),
+          GlowTextField(controller: _password, decoration: const InputDecoration(labelText: 'Password', helperText: 'Leave blank to auto-generate'), validator: (v) => (v ?? '').isNotEmpty && v!.length < 8 ? 'At least 8 characters' : null),
           if (_error != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(_error!, style: const TextStyle(color: AppColors.red))),
         ]),
       ),

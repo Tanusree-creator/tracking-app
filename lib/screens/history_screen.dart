@@ -7,6 +7,7 @@ import '../services/tracking_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
 import '../widgets/month_attendance_calendar.dart';
+import '../widgets/glass.dart';
 
 class HistoryScreen extends StatelessWidget {
   const HistoryScreen({super.key});
@@ -24,9 +25,9 @@ class HistoryScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('History & Attendance', style: TextStyle(fontWeight: FontWeight.w700))),
-      body: ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 24), children: [
+      body: ListView(padding: Sp.screen, children: [
         const SectionTitle('Monthly Attendance'),
-        Card(
+        GlassCard(
           child: Padding(
             padding: const EdgeInsets.all(8),
             child: MonthAttendanceCalendar(
@@ -69,11 +70,11 @@ class _ShiftTile extends StatelessWidget {
     final t = DateFormat('h:mm a');
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: Card(
+      child: GlassCard(
         child: ListTile(
           leading: const CircleAvatar(backgroundColor: AppColors.surfaceHigh, child: Icon(Icons.work_outline, color: AppColors.accent)),
           title: Text(DateFormat('EEE, d MMM').format(shift.start), style: const TextStyle(fontWeight: FontWeight.w600)),
-          subtitle: Text('${t.format(shift.start)} – ${live ? 'now' : t.format(shift.end!)}  ·  ${shift.breaks.length} break(s)'),
+          subtitle: Text('${t.format(shift.start)} – ${live ? 'now' : t.format(shift.end!)}  ·  ${shift.breaks.isEmpty ? 'No breaks' : shift.breaks.length == 1 ? '1 break' : '${shift.breaks.length} breaks'}'),
           trailing: live ? const StatusChip('Live', AppColors.green) : Text(fmtDuration(shift.worked), style: const TextStyle(fontWeight: FontWeight.w700)),
         ),
       ),

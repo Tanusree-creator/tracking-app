@@ -5,6 +5,7 @@ import '../../models/models.dart';
 import '../../services/access_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import '../../widgets/glass.dart';
 
 class AdminAccessScreen extends StatelessWidget {
   const AdminAccessScreen({super.key});
@@ -38,7 +39,7 @@ class AdminAccessScreen extends StatelessWidget {
           for (final r in reqs)
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
-              child: Card(
+              child: GlassCard(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
