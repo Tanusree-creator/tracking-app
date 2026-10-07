@@ -8,6 +8,7 @@ import 'package:latlong2/latlong.dart';
 import '../models/models.dart';
 import '../theme/app_theme.dart';
 import 'common.dart';
+import '../l10n/l10n.dart';
 
 /// Map pointer with a white outline and shadow, so it stays clear on both the light and the dark map.
 class MapPin extends StatelessWidget {
@@ -101,10 +102,10 @@ void showVisitPinSheet(BuildContext context, Visit v, {String? who}) {
           StatusChip(label, color),
         ]),
         const SizedBox(height: 12),
-        if (who != null) Text('Assigned to $who', style: const TextStyle(fontWeight: FontWeight.w600)),
+        if (who != null) Text(trf('Assigned to {}', [who]), style: const TextStyle(fontWeight: FontWeight.w600)),
         if (v.location.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 4), child: Text(v.location, style: const TextStyle(color: AppColors.muted))),
         const SizedBox(height: 4),
-        Text('Scheduled ${DateFormat('EEE d MMM, h:mm a').format(v.scheduledTime)}', style: const TextStyle(color: AppColors.muted)),
+        Text(trf('Scheduled {}', [DateFormat('EEE d MMM, h:mm a').format(v.scheduledTime)]), style: const TextStyle(color: AppColors.muted)),
       ]),
     ),
   );

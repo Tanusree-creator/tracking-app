@@ -7,6 +7,7 @@ import '../../services/app_notifications_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import '../../widgets/glass.dart';
+import '../../l10n/l10n.dart';
 
 /// Dashboard widget: latest event and how many are new. Tap to open the full list.
 class RecentActivityCard extends StatelessWidget {
@@ -35,9 +36,9 @@ class RecentActivityCard extends StatelessWidget {
           const SizedBox(width: Sp.l),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('Recent activity', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+              Text('Recent activity'.tr, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
               const SizedBox(height: 2),
-              Text(last == null ? 'Shifts, tasks and messages appear here' : last.title,
+              Text(last == null ? 'Shifts, tasks and messages appear here'.tr : last.title,
                   maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.muted, fontSize: 13)),
             ]),
           ),
@@ -55,7 +56,7 @@ class AdminActivityScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final alerts = context.watch<AppNotificationsProvider>().forAudience(AlertAudience.admin);
     return Scaffold(
-      appBar: AppBar(title: const Text('Recent activity', style: TextStyle(fontWeight: FontWeight.w800))),
+      appBar: AppBar(title: Text('Recent activity'.tr, style: TextStyle(fontWeight: FontWeight.w800))),
       body: alerts.isEmpty
           ? const EmptyState(Icons.bolt_outlined, 'Shifts, tasks and messages will show up here as they happen.')
           : ListView.separated(
@@ -67,8 +68,8 @@ class AdminActivityScreen extends StatelessWidget {
                 return GlassCard(
                   child: ListTile(
                     leading: const CircleAvatar(backgroundColor: AppColors.surfaceHigh, child: Icon(Icons.bolt, color: AppColors.accent)),
-                    title: Text(a.title, style: const TextStyle(fontWeight: FontWeight.w600)),
-                    subtitle: Text(a.body),
+                    title: Text(a.title.tr, style: const TextStyle(fontWeight: FontWeight.w600)),
+                    subtitle: Text(a.body.tr),
                     trailing: Text(DateFormat('d MMM\nh:mm a').format(a.time), textAlign: TextAlign.end, style: const TextStyle(color: AppColors.muted, fontSize: 12)),
                   ),
                 );

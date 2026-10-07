@@ -11,6 +11,7 @@ import '../theme/app_theme.dart';
 import '../widgets/avatar.dart';
 import '../widgets/common.dart';
 import '../widgets/glass.dart';
+import '../l10n/l10n.dart';
 
 class _Row {
   final String id, name, title;
@@ -65,11 +66,11 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     final n = await showDialog<int>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Daily visit target'),
-        content: TextField(controller: c, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Visits per employee per day')),
+        title: Text('Daily visit target'.tr),
+        content: TextField(controller: c, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: 'Visits per employee per day'.tr)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, int.tryParse(c.text.trim())), style: FilledButton.styleFrom(minimumSize: const Size(90, 44)), child: const Text('Save')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel'.tr)),
+          FilledButton(onPressed: () => Navigator.pop(ctx, int.tryParse(c.text.trim())), style: FilledButton.styleFrom(minimumSize: const Size(90, 44)), child: Text('Save'.tr)),
         ],
       ),
     );
@@ -78,7 +79,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
       await Api.adminSetDailyTarget(n);
       if (!mounted) return;
       context.read<TrackingProvider>().dailyTarget = n;
-      toast(context, 'Daily target set to $n visits', type: ToastType.success);
+      toast(context, trf('Daily target set to {} visits', [n]), type: ToastType.success);
     } catch (e) {
       if (mounted) toast(context, e.toString().replaceFirst('Exception: ', ''), type: ToastType.error);
     }
@@ -90,9 +91,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     final meId = access.me?.id;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Weekly leaderboard', style: TextStyle(fontWeight: FontWeight.w800)),
+        title: Text('Weekly leaderboard'.tr, style: TextStyle(fontWeight: FontWeight.w800)),
         actions: [
-          if (access.isAdmin) IconButton(tooltip: 'Daily target', icon: const Icon(Icons.flag_outlined), onPressed: _setTarget),
+          if (access.isAdmin) IconButton(tooltip: 'Daily target'.tr, icon: const Icon(Icons.flag_outlined), onPressed: _setTarget),
           IconButton(icon: const Icon(Icons.refresh), onPressed: () => setState(() => _f = _load())),
         ],
       ),
@@ -108,7 +109,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           if (rows.isEmpty) return const EmptyState(Icons.emoji_events_outlined, 'No employees yet');
           final star = rows.first.done > 0 ? rows.first : null;
           return ListView(padding: Sp.screen, children: [
-            const Text('Monday to Sunday · ranked by visits closed, then on-time starts', style: TextStyle(color: AppColors.muted, fontSize: 13)),
+            Text('Monday to Sunday · ranked by visits closed, then on-time starts'.tr, style: TextStyle(color: AppColors.muted, fontSize: 13)),
             const SizedBox(height: Sp.m),
             if (star != null) _Star(star, isYou: star.id == meId),
             const SizedBox(height: Sp.m),
@@ -143,14 +144,14 @@ class _Star extends StatelessWidget {
           const SizedBox(width: Sp.l),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Row(children: [
+              Row(children: [
                 Icon(Icons.emoji_events, color: _gold, size: 18),
                 SizedBox(width: 4),
-                Text('EMPLOYEE OF THE WEEK', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w700, fontSize: 11, letterSpacing: 1)),
+                Text('EMPLOYEE OF THE WEEK'.tr, style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w700, fontSize: 11, letterSpacing: 1)),
               ]),
               const SizedBox(height: 2),
-              Text(isYou ? '${r.name} (you)' : r.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 19)),
-              Text('${r.done} visit${r.done == 1 ? '' : 's'} closed this week', style: const TextStyle(color: Colors.white70)),
+              Text(isYou ? '${r.name} (${'you'.tr})' : r.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 19)),
+              Text(trf('{} closed this week', [trCount(r.done, 'visit', 'visits')]), style: const TextStyle(color: Colors.white70)),
             ]),
           ),
         ]),
@@ -182,18 +183,18 @@ class _RankTile extends StatelessWidget {
           const SizedBox(width: Sp.m),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(isYou ? '${r.name} (you)' : r.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700)),
+              Text(isYou ? '${r.name} (${'you'.tr})' : r.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700)),
               const SizedBox(height: 3),
               Wrap(spacing: 6, runSpacing: 2, children: [
-                if (r.onTime > 0) StatusChip('${r.onTime} on time', AppColors.green, icon: Icons.schedule),
-                if (r.copies > 0) StatusChip('${r.copies} copies', AppColors.accent, icon: Icons.menu_book_outlined),
-                if (r.streak >= 2) StatusChip('${r.streak}-day streak', AppColors.amber, icon: Icons.local_fire_department),
+                if (r.onTime > 0) StatusChip(trf('{} on time', [r.onTime]), AppColors.green, icon: Icons.schedule),
+                if (r.copies > 0) StatusChip(trf('{} copies', [r.copies]), AppColors.accent, icon: Icons.menu_book_outlined),
+                if (r.streak >= 2) StatusChip(trf('{}-day streak', [r.streak]), AppColors.amber, icon: Icons.local_fire_department),
               ]),
             ]),
           ),
           Column(children: [
             Text('${r.done}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 22)),
-            const Text('visits', style: TextStyle(color: AppColors.muted, fontSize: 11)),
+            Text('visits'.tr, style: TextStyle(color: AppColors.muted, fontSize: 11)),
           ]),
         ]),
       ),

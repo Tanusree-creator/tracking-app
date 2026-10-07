@@ -1,6 +1,8 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart' show IconData, Icons;
 
+import '../l10n/l10n.dart';
+
 enum AccessStatus { pending, approved, rejected }
 
 enum DutyStatus { offDuty, onDuty, onBreak }
@@ -16,9 +18,11 @@ enum VisitOutcome {
   followUp('Follow up later', Icons.event_repeat),
   notInterested('Not interested', Icons.thumb_down_alt_outlined);
 
-  final String label;
+  final String _label;
   final IconData icon;
-  const VisitOutcome(this.label, this.icon);
+  const VisitOutcome(this._label, this.icon);
+
+  String get label => _label.tr;
 
   /// Orders and samples are counted in copies.
   bool get hasCopies => this == ordered || this == sampleGiven;
@@ -44,6 +48,7 @@ class Employee extends Equatable {
   final DateTime? lastSeen;
   final DateTime? shiftStart;
   final int unread;
+  final String staffType; // 'field' (marketing, GPS tracked) or 'office' (in-house)
 
   const Employee({
     required this.id,
@@ -60,7 +65,10 @@ class Employee extends Equatable {
     this.lastSeen,
     this.shiftStart,
     this.unread = 0,
+    this.staffType = 'field',
   });
+
+  bool get isOffice => staffType == 'office';
 
   /// Row from `admin_live`.
   factory Employee.fromLive(Map<String, dynamic> j) {
@@ -79,6 +87,7 @@ class Employee extends Equatable {
       lastSeen: lp == null ? null : DateTime.parse(lp['at'] as String).toLocal(),
       shiftStart: open ? DateTime.parse(j['shift_start'] as String).toLocal() : null,
       unread: (j['unread'] as num?)?.toInt() ?? 0,
+      staffType: (j['staff_type'] ?? 'field') as String,
     );
   }
 
@@ -92,6 +101,7 @@ class Employee extends Equatable {
         title: (j['role_title'] ?? 'Field Technician') as String,
         district: (j['district'] ?? 'East District') as String,
         access: accessStatusFrom(j['status'] as String?),
+        staffType: (j['staff_type'] ?? 'field') as String,
       );
 
   String get initials => name
@@ -102,7 +112,7 @@ class Employee extends Equatable {
       .join();
 
   @override
-  List<Object?> get props => [id, name, email, title, district, phone, access, status, lat, lng, lastSeen, unread];
+  List<Object?> get props => [id, name, email, title, district, phone, access, status, lat, lng, lastSeen, unread, staffType];
 }
 
 class AccessRequest extends Equatable {
@@ -324,8 +334,13 @@ class ChatMessage {
   final String body;
   final bool isSystem;
   final DateTime at;
-  const ChatMessage(this.id, this.fromAdmin, this.body, this.isSystem, this.at);
+  final String kind; // text | image | voice (the photo / audio itself is fetched on demand)
+  const ChatMessage(this.id, this.fromAdmin, this.body, this.isSystem, this.at, {this.kind = 'text'});
+
+  bool get isImage => kind == 'image';
+  bool get isVoice => kind == 'voice';
 
   factory ChatMessage.fromRemote(Map<String, dynamic> j) => ChatMessage(j['id'] as String, j['from_admin'] == true,
-      j['body'] as String, j['is_system'] == true, DateTime.parse(j['created_at'] as String).toLocal());
+      j['body'] as String, j['is_system'] == true, DateTime.parse(j['created_at'] as String).toLocal(),
+      kind: (j['kind'] ?? 'text') as String);
 }

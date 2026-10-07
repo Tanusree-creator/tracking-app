@@ -6,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/models.dart';
+import '../../models/office_models.dart';
 import '../../services/access_provider.dart';
 import '../../services/api.dart';
 import '../../services/tracking_provider.dart' show fmtDuration;
@@ -18,6 +19,7 @@ import '../../widgets/month_attendance_calendar.dart';
 import '../chat_screens.dart';
 import '../location_picker_screen.dart';
 import '../route_map_screen.dart';
+import '../../l10n/l10n.dart';
 
 (String, Color, IconData) dutyStyle(DutyStatus s) => switch (s) {
       DutyStatus.onDuty => ('On Duty', AppColors.green, Icons.check_circle),
@@ -38,6 +40,7 @@ class _AdminEmployeeDetailScreenState extends State<AdminEmployeeDetailScreen> {
   List<Shift> _shifts = [];
   List<Visit> _visits = [];
   List<Map<String, dynamic>> _faces = [];
+  List<LeaveRequest> _leaves = [];
   bool _loading = true;
   String? _error;
 
@@ -51,6 +54,9 @@ class _AdminEmployeeDetailScreenState extends State<AdminEmployeeDetailScreen> {
 
   Future<void> _load() async {
     try {
+      try {
+        _leaves = (await Api.adminLeaves(e.id)).map(LeaveRequest.fromRemote).toList();
+      } catch (_) {} // 007 not run yet
       final d = await Api.adminEmployeeData(e.id);
       if (!mounted) return;
       setState(() {
@@ -95,7 +101,7 @@ class _AdminEmployeeDetailScreenState extends State<AdminEmployeeDetailScreen> {
           title: Text(e.name),
           actions: [
             IconButton(
-              tooltip: 'Message',
+              tooltip: 'Message'.tr,
               icon: const Icon(Icons.chat_bubble_outline),
               onPressed: () => Navigator.of(context).push(slideRoute(AdminChatThreadScreen(e.id, e.name))),
             ),
@@ -119,12 +125,12 @@ class _AdminEmployeeDetailScreenState extends State<AdminEmployeeDetailScreen> {
               FilledButton.icon(
                 onPressed: () => _assignTask(context),
                 icon: const Icon(Icons.add_task, size: 18),
-                label: const Text('Task'),
+                label: Text('Task'.tr),
                 style: FilledButton.styleFrom(minimumSize: const Size(90, 42)),
               ),
             ]),
           ),
-          const TabBar(isScrollable: false, tabs: [Tab(text: 'Overview'), Tab(text: 'Visits'), Tab(text: 'Attendance'), Tab(text: 'Routes')]),
+          TabBar(isScrollable: false, tabs: [Tab(text: 'Overview'.tr), Tab(text: 'Visits'.tr), Tab(text: 'Attendance'.tr), Tab(text: 'Routes'.tr)]),
           Expanded(
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
@@ -149,16 +155,16 @@ class _AdminEmployeeDetailScreenState extends State<AdminEmployeeDetailScreen> {
       onRefresh: _load,
       child: ListView(padding: Sp.screen, children: [
         StatGrid([
-          StatTile(icon: Icons.schedule, value: hours.toStringAsFixed(1), label: 'Hours this month'),
-          StatTile(icon: Icons.task_alt, value: '$done / ${_visits.length}', label: 'Tasks completed', color: AppColors.green),
-          StatTile(icon: Icons.work_history, value: '${monthShifts.length}', label: 'Shifts this month', color: AppColors.blue400),
+          StatTile(icon: Icons.schedule, value: hours.toStringAsFixed(1), label: 'Hours this month'.tr),
+          StatTile(icon: Icons.task_alt, value: '$done / ${_visits.length}', label: 'Tasks completed'.tr, color: AppColors.green),
+          StatTile(icon: Icons.work_history, value: '${monthShifts.length}', label: 'Shifts this month'.tr, color: AppColors.blue400),
           StatTile(
             icon: Icons.route,
-            value: 'Live',
+            value: 'Live'.tr,
             label: e.status == DutyStatus.offDuty ? 'Today’s route' : 'Track now',
             color: AppColors.amber,
             onTap: () => Navigator.of(context).push(
-                slideRoute(_routeScreen("${e.name.split(' ').first}'s route today", today, today.add(const Duration(days: 1)), live: true))),
+                slideRoute(_routeScreen(trf("{}'s route today", [e.name.split(' ').first]), today, today.add(const Duration(days: 1)), live: true))),
           ),
         ]),
         const SectionTitle('Face verification log'),
@@ -171,12 +177,12 @@ class _AdminEmployeeDetailScreenState extends State<AdminEmployeeDetailScreen> {
               child: GlassCard(
                 child: ListTile(
                   leading: const Icon(Icons.face, color: AppColors.accent),
-                  title: Text(switch (c['kind']) {
+                  title: Text((switch (c['kind']) {
                     'enroll' => 'Reference photo saved',
                     'sign_in' => 'Verified at sign-in',
                     'clock_in' => 'Verified at clock-in',
                     _ => 'Verified after break',
-                  }),
+                  }).tr),
                   subtitle: Text(f.format(DateTime.parse(c['at'] as String).toLocal())),
                   trailing: const Icon(Icons.image_outlined, color: AppColors.muted),
                   onTap: () => _showPhoto(context, 'Face check', () => Api.adminFacePhoto(c['id'] as String)),
@@ -247,6 +253,7 @@ class _AdminEmployeeDetailScreenState extends State<AdminEmployeeDetailScreen> {
         child: Padding(
           padding: const EdgeInsets.all(8),
           child: MonthAttendanceCalendar(
+            isAbsent: (day) => _leaves.any((l) => l.approved && l.covers(day)),
             daysFor: (m) => [
               for (var i = 1; i <= DateTime(m.year, m.month + 1, 0).day; i++)
                 AttendanceDay(DateTime(m.year, m.month, i), byDay[DateTime(m.year, m.month, i)] ?? 0),
@@ -265,7 +272,7 @@ class _AdminEmployeeDetailScreenState extends State<AdminEmployeeDetailScreen> {
               child: ListTile(
                 leading: const Icon(Icons.work_outline, color: AppColors.accent),
                 title: Text(DateFormat('EEE, d MMM').format(s.start)),
-                subtitle: Text('${t.format(s.start)} – ${s.isOpen ? 'now' : t.format(s.end!)} · ${s.breaks.length} break${s.breaks.length == 1 ? '' : 's'}'),
+                subtitle: Text('${t.format(s.start)} – ${s.isOpen ? 'now'.tr : t.format(s.end!)} · ${trCount(s.breaks.length, 'break', 'breaks')}'),
                 trailing: s.isOpen ? const StatusChip('Live', AppColors.green) : Text(fmtDuration(s.worked), style: const TextStyle(fontWeight: FontWeight.w700)),
               ),
             ),
@@ -294,7 +301,7 @@ class _AdminEmployeeDetailScreenState extends State<AdminEmployeeDetailScreen> {
           child: ListTile(
             leading: const Icon(Icons.map_outlined, color: AppColors.accent),
             title: Text(DateFormat('EEEE, d MMM y').format(d)),
-            subtitle: Text('${hrs.toStringAsFixed(1)} h worked'),
+            subtitle: Text(trf('{} h worked', [hrs.toStringAsFixed(1)])),
             trailing: Row(mainAxisSize: MainAxisSize.min, children: [
               RouteKmText(load: _route, from: d, to: end),
               const Icon(Icons.chevron_right, color: AppColors.muted),
@@ -321,11 +328,11 @@ class _AdminEmployeeDetailScreenState extends State<AdminEmployeeDetailScreen> {
           child: Form(
             key: form,
             child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              Text('Assign task to ${e.name.split(' ').first}', style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+              Text(trf('Assign task to {}', [e.name.split(' ').first]), style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
               const SizedBox(height: 16),
               GlowTextField(
                 controller: title,
-                decoration: const InputDecoration(labelText: 'Task title'),
+                decoration: InputDecoration(labelText: 'Task title'.tr),
                 validator: (v) => (v ?? '').trim().isEmpty ? 'Enter a title' : null,
               ),
               const SizedBox(height: 12),
@@ -352,14 +359,14 @@ class _AdminEmployeeDetailScreenState extends State<AdminEmployeeDetailScreen> {
                         try {
                           await Api.adminCreateTask(e.id, title.text, place!.name, place!.lat, place!.lng, when);
                           if (ctx.mounted) Navigator.pop(ctx);
-                          if (context.mounted) toast(context, 'Task created and sent to ${e.name.split(' ').first}', type: ToastType.success);
+                          if (context.mounted) toast(context, trf('Task created and sent to {}', [e.name.split(' ').first]), type: ToastType.success);
                           _load();
                         } catch (err) {
                           setS(() => busy = false);
                           if (ctx.mounted) toast(ctx, err.toString().replaceFirst('Exception: ', ''), type: ToastType.error);
                         }
                       },
-                child: busy ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Create task'),
+                child: busy ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Text('Create task'.tr),
               ),
             ]),
           ),
@@ -381,11 +388,11 @@ Future<void> _showPhoto(BuildContext context, String title, Future<String?> Func
             return const SizedBox(height: 220, child: Center(child: CircularProgressIndicator()));
           }
           if (s.data == null) {
-            return const SizedBox(height: 160, child: Center(child: Text('No photo available')));
+            return SizedBox(height: 160, child: Center(child: Text('No photo available'.tr)));
           }
           return Column(mainAxisSize: MainAxisSize.min, children: [
             Image.memory(base64Decode(s.data!), fit: BoxFit.cover),
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close')),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Close'.tr)),
           ]);
         },
       ),
@@ -404,11 +411,11 @@ class _VisitDetail extends StatelessWidget {
     final f = DateFormat('EEE d MMM y, h:mm a');
     Widget row(IconData i, String k, String val) => ListTile(
           leading: Icon(i, color: AppColors.muted),
-          title: Text(k, style: const TextStyle(color: AppColors.muted, fontSize: 13)),
+          title: Text(k.tr, style: const TextStyle(color: AppColors.muted, fontSize: 13)),
           subtitle: Text(val, style: const TextStyle(fontSize: 16)),
         );
     return Scaffold(
-      appBar: AppBar(title: const Text('Visit')),
+      appBar: AppBar(title: Text('Visit'.tr)),
       body: ListView(padding: const EdgeInsets.all(16), children: [
         Text(v.title, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
         const SizedBox(height: 12),
@@ -419,12 +426,12 @@ class _VisitDetail extends StatelessWidget {
             row(Icons.schedule, 'Scheduled', f.format(v.scheduledTime)),
             if (v.startedAt != null) row(Icons.play_arrow, 'Started', f.format(v.startedAt!)),
             if (v.completedAt != null) row(Icons.check_circle_outline, 'Completed', f.format(v.completedAt!)),
-            if (v.outcome != null) row(v.outcome!.icon, 'Result', '${v.outcome!.label}${v.copies == null ? '' : ' · ${v.copies} copies'}'),
+            if (v.outcome != null) row(v.outcome!.icon, 'Result', '${v.outcome!.label}${v.copies == null ? '' : ' · ${trf('{} copies', [v.copies])}'}'),
             if (v.outcomeNote != null) row(Icons.notes, 'Note', v.outcomeNote!),
             if (v.startedAt != null)
               ListTile(
                 leading: const Icon(Icons.route, color: AppColors.muted),
-                title: const Text('Distance travelled', style: TextStyle(color: AppColors.muted, fontSize: 13)),
+                title: Text('Distance travelled'.tr, style: TextStyle(color: AppColors.muted, fontSize: 13)),
                 subtitle: RouteKmText(load: load, from: v.startedAt!, to: v.completedAt ?? DateTime.now()),
               ),
           ]),
@@ -444,14 +451,14 @@ class _VisitDetail extends StatelessWidget {
               personPhoto: context.read<AccessProvider>().avatarOf(e.id),
             ))),
             icon: const Icon(Icons.map_outlined),
-            label: const Text('See the route taken'),
+            label: Text('See the route taken'.tr),
           ),
         if (v.hasPhoto) ...[
           const SizedBox(height: 10),
           OutlinedButton.icon(
             onPressed: () => _showPhoto(context, 'Photo', () => Api.adminVisitPhoto(v.id)),
             icon: const Icon(Icons.photo_camera_outlined),
-            label: const Text('See photo of the place'),
+            label: Text('See photo of the place'.tr),
             style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
           ),
         ],

@@ -3,6 +3,7 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
+import '../l10n/l10n.dart';
 import '../theme/app_theme.dart';
 
 bool _isDark(BuildContext c) => Theme.of(c).brightness == Brightness.dark;
@@ -201,7 +202,7 @@ class GlassBottomNav extends StatelessWidget {
                               size: 24, color: i == index ? (dark ? Colors.white : AppColors.blue700) : AppColors.muted),
                         ),
                         const SizedBox(height: 3),
-                        Text(it.label,
+                        Text(it.label.tr,
                             maxLines: 1,
                             style: TextStyle(
                                 fontSize: 11,

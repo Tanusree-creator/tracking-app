@@ -7,6 +7,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/anim.dart';
 import '../../widgets/common.dart';
 import '../../widgets/glass.dart';
+import '../../l10n/l10n.dart';
 
 class AdminAdminsScreen extends StatefulWidget {
   const AdminAdminsScreen({super.key});
@@ -42,7 +43,7 @@ class _AdminAdminsScreenState extends State<AdminAdminsScreen> {
   }
 
   Future<void> _delete(Map<String, dynamic> a) async {
-    if (!await confirm(context, 'Remove admin?', '${a['email']} will no longer be able to sign in.', action: 'Remove', danger: true)) return;
+    if (!await confirm(context, 'Remove admin?', trf('{} will no longer be able to sign in.', [a['email']]), action: 'Remove', danger: true)) return;
     try {
       await Api.deleteAdmin(a['id'] as String);
       _load();
@@ -60,11 +61,11 @@ class _AdminAdminsScreenState extends State<AdminAdminsScreen> {
   Widget build(BuildContext context) {
     final list = _list;
     return Scaffold(
-      appBar: AppBar(title: const Text('Admins', style: TextStyle(fontWeight: FontWeight.w700))),
+      appBar: AppBar(title: Text('Admins'.tr, style: TextStyle(fontWeight: FontWeight.w700))),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _new,
         icon: const Icon(Icons.person_add_alt_1),
-        label: const Text('New admin'),
+        label: Text('New admin'.tr),
       ),
       body: _error != null
           ? ErrorState(_error!, _load)
@@ -85,7 +86,7 @@ class _AdminAdminsScreenState extends State<AdminAdminsScreen> {
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                           leading: const CircleAvatar(backgroundColor: AppColors.surfaceHigh, child: Icon(Icons.admin_panel_settings, color: AppColors.accent)),
                           title: Text(a['email'] as String, style: const TextStyle(fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis),
-                          subtitle: Text('Added ${DateFormat('d MMM y').format(DateTime.parse(a['created_at'] as String).toLocal())}'),
+                          subtitle: Text(trf('Added {}', [DateFormat('d MMM y').format(DateTime.parse(a['created_at'] as String).toLocal())])),
                           trailing: me
                               ? const StatusChip('You', AppColors.accent)
                               : IconButton(icon: const Icon(Icons.delete_outline, color: AppColors.red), onPressed: () => _delete(a)),
@@ -142,14 +143,14 @@ class _NewAdminScreenState extends State<NewAdminScreen> {
   Widget build(BuildContext context) {
     final c = _created;
     return Scaffold(
-      appBar: AppBar(title: Text(c == null ? 'New admin' : 'Admin created')),
+      appBar: AppBar(title: Text((c == null ? 'New admin' : 'Admin created').tr)),
       body: SafeArea(
         child: ListView(padding: const EdgeInsets.all(20), children: [
           if (c != null) ...[
             const SizedBox(height: 12),
             const Icon(Icons.check_circle, color: AppColors.green, size: 64),
             const SizedBox(height: 16),
-            const Text('Share these credentials now. The password is not shown again.', textAlign: TextAlign.center),
+            Text('Share these credentials now. The password is not shown again.'.tr, textAlign: TextAlign.center),
             const SizedBox(height: 16),
             GlassCard(
               child: Padding(
@@ -164,22 +165,22 @@ class _NewAdminScreenState extends State<NewAdminScreen> {
                 snack(context, 'Copied');
               },
               icon: const Icon(Icons.copy, size: 18),
-              label: const Text('Copy'),
+              label: Text('Copy'.tr),
               style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
             ),
             const SizedBox(height: 10),
-            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Done')),
+            FilledButton(onPressed: () => Navigator.pop(context, true), child: Text('Done'.tr)),
           ] else
             Form(
               key: _form,
               child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                const Text('The new admin can sign in with these details and manage employees, tasks and reports.', style: TextStyle(color: AppColors.muted)),
+                Text('The new admin can sign in with these details and manage employees, tasks and reports.'.tr, style: TextStyle(color: AppColors.muted)),
                 const SizedBox(height: 20),
                 GlowTextField(
                   controller: _email,
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(labelText: 'Email address', prefixIcon: Icon(Icons.mail_outline)),
+                  decoration: InputDecoration(labelText: 'Email address'.tr, prefixIcon: Icon(Icons.mail_outline)),
                   validator: (v) => RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch((v ?? '').trim()) ? null : 'Enter a valid email',
                 ),
                 const SizedBox(height: 14),
@@ -187,8 +188,8 @@ class _NewAdminScreenState extends State<NewAdminScreen> {
                   controller: _password,
                   obscureText: _hide,
                   decoration: InputDecoration(
-                    labelText: 'Password',
-                    helperText: 'Leave blank to auto-generate a strong one',
+                    labelText: 'Password'.tr,
+                    helperText: 'Leave blank to auto-generate a strong one'.tr,
                     prefixIcon: const Icon(Icons.lock_outline),
                     suffixIcon: IconButton(icon: Icon(_hide ? Icons.visibility : Icons.visibility_off), onPressed: () => setState(() => _hide = !_hide)),
                   ),
@@ -209,7 +210,7 @@ class _NewAdminScreenState extends State<NewAdminScreen> {
                 const SizedBox(height: 22),
                 FilledButton(
                   onPressed: _busy ? null : _save,
-                  child: _busy ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Create admin'),
+                  child: _busy ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Text('Create admin'.tr),
                 ),
               ]),
             ),

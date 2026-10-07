@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../theme/app_theme.dart';
 import 'glass.dart';
 
@@ -42,7 +43,7 @@ class StatTile extends StatelessWidget {
                           fontWeight: FontWeight.w700, fontFeatures: const [FontFeature.tabularFigures()])),
                 ),
                 const SizedBox(height: 2),
-                Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: t.bodySmall?.copyWith(color: AppColors.muted)),
+                Text(label.tr, maxLines: 1, overflow: TextOverflow.ellipsis, style: t.bodySmall?.copyWith(color: AppColors.muted)),
               ]),
             ],
           ),
@@ -86,7 +87,7 @@ class StatusChip extends StatelessWidget {
           else
             Container(width: 6, height: 6, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
           const SizedBox(width: 5),
-          Text(label, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
+          Text(label.tr, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
         ]),
       );
 }
@@ -103,7 +104,7 @@ class EmptyState extends StatelessWidget {
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Icon(icon, size: 44, color: AppColors.muted),
             const SizedBox(height: 10),
-            Text(text, style: const TextStyle(color: AppColors.muted)),
+            Text(text.tr, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.muted)),
           ]),
         ),
       );
@@ -121,9 +122,9 @@ class ErrorState extends StatelessWidget {
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             const Icon(Icons.cloud_off, size: 44, color: AppColors.red),
             const SizedBox(height: 10),
-            Text(message, textAlign: TextAlign.center),
+            Text(message.tr, textAlign: TextAlign.center),
             const SizedBox(height: 12),
-            OutlinedButton(onPressed: onRetry, child: const Text('Retry')),
+            OutlinedButton(onPressed: onRetry, child: Text('Retry'.tr)),
           ]),
         ),
       );
@@ -138,7 +139,7 @@ class SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.only(top: Sp.xl, bottom: Sp.m),
         child: Row(children: [
-          Expanded(child: Text(text, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600))),
+          Expanded(child: Text(text.tr, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600))),
           if (trailing != null) trailing!,
         ]),
       );
@@ -153,6 +154,7 @@ void toast(BuildContext context, String message, {ToastType? type}) {
   final overlay = Overlay.maybeOf(context, rootOverlay: true);
   if (overlay == null) return;
   _toastEntry?.remove();
+  message = message.tr;
   final kind = type ?? _inferToastType(message);
   late OverlayEntry entry;
   entry = OverlayEntry(builder: (_) => _Toast(message, kind, onDone: () {
@@ -258,15 +260,15 @@ Future<bool> confirm(BuildContext context, String title, String message, {String
   final ok = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: Text(title),
-      content: Text(message),
+      title: Text(title.tr),
+      content: Text(message.tr),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Cancel'.tr)),
         FilledButton(
           onPressed: () => Navigator.pop(ctx, true),
           style: FilledButton.styleFrom(
               minimumSize: const Size(100, 44), backgroundColor: danger ? AppColors.red : AppColors.accent),
-          child: Text(action),
+          child: Text(action.tr),
         ),
       ],
     ),

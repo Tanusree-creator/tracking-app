@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../models/models.dart';
 import '../theme/app_theme.dart';
 import 'brand.dart';
+import '../l10n/l10n.dart';
 
 /// Employees orbiting an operations centre, with a radar sweep. Tap a person to open them.
 class RadarOrbit extends StatefulWidget {
@@ -95,11 +96,11 @@ class _RadarOrbitState extends State<RadarOrbit> with TickerProviderStateMixin {
                 ),
               ),
               if (emps.isEmpty)
-                const Align(
+                Align(
                   alignment: Alignment.bottomCenter,
                   child: Padding(
                     padding: EdgeInsets.all(20),
-                    child: Text('No approved employees yet', style: TextStyle(color: Colors.white70)),
+                    child: Text('No approved employees yet'.tr, style: TextStyle(color: Colors.white70)),
                   ),
                 ),
               AnimatedBuilder(
@@ -182,7 +183,7 @@ class _RadarOrbitState extends State<RadarOrbit> with TickerProviderStateMixin {
                   for (final (l, c) in [('Active', AppColors.green), ('Break', AppColors.amber), ('Off', const Color(0xFF6B7A99))]) ...[
                     Container(width: 8, height: 8, decoration: BoxDecoration(color: c, shape: BoxShape.circle)),
                     const SizedBox(width: 5),
-                    Text(l, style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                    Text(l.tr, style: const TextStyle(color: Colors.white70, fontSize: 11)),
                     const SizedBox(width: 12),
                   ],
                 ]),

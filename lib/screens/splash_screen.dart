@@ -6,9 +6,9 @@ import '../services/access_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/anim.dart';
 import '../widgets/brand.dart';
-import 'admin/admin_shell.dart';
 import 'login_screen.dart';
-import 'tech_shell.dart';
+import 'home_router.dart';
+import '../l10n/l10n.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -33,8 +33,8 @@ class _SplashScreenState extends State<SplashScreen> {
     ]);
     if (!mounted) return;
     final restored = results.first as bool;
-    final Widget next = !restored ? const LoginScreen() : (access.isAdmin ? const AdminShell() : const TechShell());
-    Navigator.of(context).pushReplacement(slideRoute(next));
+    final Widget next = !restored ? const LoginScreen() : homeFor(access);
+    Navigator.of(context).pushReplacement(fadeRoute(next));
   }
 
   @override
@@ -51,14 +51,14 @@ class _SplashScreenState extends State<SplashScreen> {
               .scale(begin: const Offset(.8, .8), duration: 800.ms, curve: Curves.easeOutBack)
               .fadeIn(duration: 600.ms),
           const SizedBox(height: 28),
-          Text('MERIT PUBLICATION',
+          Text('MERIT PUBLICATION'.tr,
                   style: TextStyle(
                       color: dark ? Colors.white : AppColors.blue800, fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: 3))
               .animate(delay: 350.ms)
               .fadeIn(duration: 500.ms)
               .slideY(begin: .3, end: 0),
           const SizedBox(height: 6),
-          const Text('Every page, every reader, on time.', style: TextStyle(color: AppColors.muted, fontStyle: FontStyle.italic, letterSpacing: .3))
+          Text('Every page, every reader, on time.'.tr, style: TextStyle(color: AppColors.muted, fontStyle: FontStyle.italic, letterSpacing: .3))
               .animate(delay: 550.ms)
               .fadeIn(duration: 500.ms),
         ]),

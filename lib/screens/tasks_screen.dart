@@ -17,9 +17,10 @@ import '../widgets/glass.dart';
 import '../widgets/outcome_sheet.dart';
 import 'location_picker_screen.dart';
 import 'route_map_screen.dart';
+import '../l10n/l10n.dart';
 
 /// "Books ordered · 25 copies"
-String outcomeText(Visit v) => v.outcome == null ? '' : '${v.outcome!.label}${v.copies == null ? '' : ' · ${v.copies} copies'}';
+String outcomeText(Visit v) => v.outcome == null ? '' : '${v.outcome!.label}${v.copies == null ? '' : ' · ${trf('{} copies', [v.copies])}'}';
 
 (String, Color, IconData) visitStatusStyle(VisitStatus s) => switch (s) {
       VisitStatus.pending => ('Pending', AppColors.amber, Icons.schedule),
@@ -83,14 +84,14 @@ class TasksScreen extends StatelessWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Tasks', style: TextStyle(fontWeight: FontWeight.w700))),
+      appBar: AppBar(title: Text('Tasks'.tr, style: TextStyle(fontWeight: FontWeight.w700))),
       // lifted above the floating nav bar
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 84),
         child: FloatingActionButton.extended(
           onPressed: () => showAddVisitSheet(context),
           icon: const Icon(Icons.add),
-          label: const Text('Add Task'),
+          label: Text('Add Task'.tr),
         ),
       ),
       body: visits.isEmpty
@@ -119,11 +120,11 @@ void showAddVisitSheet(BuildContext context) {
         child: Form(
           key: form,
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Text('New Task', style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+            Text('New Task'.tr, style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
             const SizedBox(height: 16),
             GlowTextField(
               controller: title,
-              decoration: const InputDecoration(labelText: 'Title'),
+              decoration: InputDecoration(labelText: 'Title'.tr),
               validator: (v) => (v ?? '').trim().isEmpty ? 'Enter a title' : null,
             ),
             const SizedBox(height: 12),
@@ -135,7 +136,7 @@ void showAddVisitSheet(BuildContext context) {
                 if (t != null) setState(() => time = t);
               },
               icon: const Icon(Icons.schedule),
-              label: Text(time == null ? 'Select time' : time!.format(ctx)),
+              label: Text(time == null ? 'Select time'.tr : time!.format(ctx)),
             ),
             const SizedBox(height: 16),
             FilledButton(
@@ -150,7 +151,7 @@ void showAddVisitSheet(BuildContext context) {
                     lat: place!.lat, lng: place!.lng);
                 Navigator.pop(ctx);
               },
-              child: const Text('Add Task'),
+              child: Text('Add Task'.tr),
             ),
           ]),
         ),
@@ -171,12 +172,12 @@ class VisitDetailScreen extends StatelessWidget {
     final f = DateFormat('h:mm a');
     Widget row(IconData i, String k, String val) => ListTile(
           leading: Icon(i, color: AppColors.muted),
-          title: Text(k, style: const TextStyle(color: AppColors.muted, fontSize: 13)),
+          title: Text(k.tr, style: const TextStyle(color: AppColors.muted, fontSize: 13)),
           subtitle: Text(val, style: const TextStyle(fontSize: 16)),
         );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Task Detail')),
+      appBar: AppBar(title: Text('Task Detail'.tr)),
       body: ListView(padding: const EdgeInsets.all(16), children: [
         Text(v.title, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
         const SizedBox(height: 8),
@@ -204,18 +205,18 @@ class VisitDetailScreen extends StatelessWidget {
               snack(context, 'Visit started');
             },
             icon: const Icon(Icons.play_arrow),
-            label: const Text('Start Visit'),
+            label: Text('Start Visit'.tr),
           ),
         if (v.status == VisitStatus.inProgress)
           FilledButton.icon(
             onPressed: () => _complete(context, tr, v),
             icon: const Icon(Icons.photo_camera_outlined),
-            label: const Text('Take photo & complete'),
+            label: Text('Take photo & complete'.tr),
           ),
         if (v.status == VisitStatus.inProgress)
-          const Padding(
+          Padding(
             padding: EdgeInsets.only(top: 8),
-            child: Text('A photo of the visited place is required to close this task.',
+            child: Text('A photo of the visited place is required to close this task.'.tr,
                 textAlign: TextAlign.center, style: TextStyle(color: AppColors.muted, fontSize: 13)),
           ),
         if (v.photoB64 != null) ...[
@@ -235,7 +236,7 @@ class VisitDetailScreen extends StatelessWidget {
               visits: [v],
             ))),
             icon: const Icon(Icons.route),
-            label: const Text('View route taken'),
+            label: Text('View route taken'.tr),
             style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
           ),
         ],

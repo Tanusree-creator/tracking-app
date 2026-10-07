@@ -11,6 +11,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/anim.dart';
 import '../../widgets/common.dart';
 import '../../widgets/glass.dart';
+import '../../l10n/l10n.dart';
 
 class AdminReportsScreen extends StatefulWidget {
   const AdminReportsScreen({super.key});
@@ -97,7 +98,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
         FilledButton.icon(
           onPressed: _exporting || _data == null ? null : () => _export(ReportService.build(emps, _data!), selected),
           icon: _exporting ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.picture_as_pdf),
-          label: const Text('PDF'),
+          label: Text('PDF'.tr),
           style: FilledButton.styleFrom(minimumSize: const Size(100, 48)),
         ),
       ]),
@@ -105,9 +106,9 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
       DropdownButtonFormField<String?>(
         initialValue: _employeeId,
         isExpanded: true,
-        decoration: const InputDecoration(labelText: 'Employee', prefixIcon: Icon(Icons.person_outline)),
+        decoration: InputDecoration(labelText: 'Employee'.tr, prefixIcon: Icon(Icons.person_outline)),
         items: [
-          const DropdownMenuItem<String?>(value: null, child: Text('All employees')),
+          DropdownMenuItem<String?>(value: null, child: Text('All employees'.tr)),
           for (final e in emps) DropdownMenuItem<String?>(value: e.id, child: Text(e.name, overflow: TextOverflow.ellipsis)),
         ],
         onChanged: (v) => setState(() => _employeeId = v),
@@ -140,7 +141,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text('Total hours', style: TextStyle(color: AppColors.muted, fontSize: 13)),
+                  Text('Total hours'.tr, style: TextStyle(color: AppColors.muted, fontSize: 13)),
                   const SizedBox(height: 6),
                   CountUp(totalHours, decimals: 1, style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800)),
                 ]),
@@ -162,7 +163,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      const Text('Tasks', style: TextStyle(color: AppColors.muted, fontSize: 13)),
+                      Text('Tasks'.tr, style: TextStyle(color: AppColors.muted, fontSize: 13)),
                       Text('$done / $total', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
                     ]),
                   ),
@@ -172,7 +173,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
           ),
         ]),
         const SizedBox(height: 12),
-        _ChartCard(title: 'Daily Hours Distribution', child: _bars(values: daily, label: dayLabel, color: AppColors.accent, days: days.length)),
+        _ChartCard(title: 'Daily Hours Distribution'.tr, child: _bars(values: daily, label: dayLabel, color: AppColors.accent, days: days.length)),
         const SizedBox(height: 12),
         _ChartCard(
           title: selected == null ? 'Task Completion (by employee)' : 'Task Completion (by day)',
@@ -261,7 +262,7 @@ class _ChartCard extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+            Text(title.tr, style: const TextStyle(fontWeight: FontWeight.w700)),
             const SizedBox(height: 16),
             SizedBox(height: 180, child: child),
           ]),

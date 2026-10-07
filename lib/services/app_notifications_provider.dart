@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
+import '../l10n/l10n.dart';
 import '../models/models.dart';
 import 'api.dart';
 import 'notification_service.dart';
@@ -23,6 +24,8 @@ class AppNotificationsProvider extends ChangeNotifier {
   }
 
   void add(String title, String body, AlertAudience audience, {bool notify = true}) {
+    title = title.tr;
+    body = body.tr;
     _alerts.add(AppAlert(id: const Uuid().v4(), title: title, body: body, audience: audience, time: DateTime.now()));
     if (notify && pushEnabled) NotificationService.instance.show(title, body);
     notifyListeners();
@@ -56,8 +59,8 @@ class AppNotificationsProvider extends ChangeNotifier {
         final fresh = !initial || DateTime.now().difference(at) < const Duration(minutes: 2);
         _alerts.add(AppAlert(
           id: id,
-          title: r['title'] as String,
-          body: (r['body'] ?? '') as String,
+          title: (r['title'] as String).tr,
+          body: ((r['body'] ?? '') as String).tr,
           audience: AlertAudience.admin,
           time: at,
           read: !fresh, // old events go to the list without a banner

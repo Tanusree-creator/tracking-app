@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 
+import '../l10n/l10n.dart';
 import '../models/models.dart';
 import '../theme/app_theme.dart';
 
 class MonthAttendanceCalendar extends StatefulWidget {
   /// Provide hours for a given month; called when the visible month changes.
   final List<AttendanceDay> Function(DateTime month) daysFor;
-  const MonthAttendanceCalendar({super.key, required this.daysFor});
+
+  /// Days on approved leave: shown as absent.
+  final bool Function(DateTime day)? isAbsent;
+  const MonthAttendanceCalendar({super.key, required this.daysFor, this.isAbsent});
 
   @override
   State<MonthAttendanceCalendar> createState() => _MonthAttendanceCalendarState();
@@ -21,16 +25,19 @@ class _MonthAttendanceCalendarState extends State<MonthAttendanceCalendar> {
     final byDay = {for (final d in widget.daysFor(_focused)) d.date.day: d};
     Widget cell(DateTime day, {bool today = false}) {
       final a = day.month == _focused.month ? byDay[day.day] : null;
-      final color = a == null || a.hours == 0
-          ? null
-          : (a.isFull ? AppColors.green : AppColors.amber);
+      final absent = day.month == _focused.month && (widget.isAbsent?.call(day) ?? false);
+      final color = absent
+          ? AppColors.red
+          : a == null || a.hours == 0
+              ? null
+              : (a.isFull ? AppColors.green : AppColors.amber);
       return Center(
         child: Container(
           width: 34,
           height: 34,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: color?.withValues(alpha: .22),
+            color: color?.withValues(alpha: absent ? .3 : .22),
             shape: BoxShape.circle,
             border: today ? Border.all(color: AppColors.accent, width: 2) : null,
           ),
@@ -40,14 +47,13 @@ class _MonthAttendanceCalendarState extends State<MonthAttendanceCalendar> {
     }
 
     return Column(children: [
-      const Padding(
-        padding: EdgeInsets.only(top: 8, bottom: 4),
-        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          _Dot(AppColors.green, 'Full day'),
-          SizedBox(width: 16),
-          _Dot(AppColors.amber, 'Partial'),
-          SizedBox(width: 16),
-          _Dot(AppColors.muted, 'No shift'),
+      Padding(
+        padding: const EdgeInsets.only(top: 8, bottom: 4),
+        child: Wrap(alignment: WrapAlignment.center, spacing: 14, runSpacing: 4, children: [
+          _Dot(AppColors.green, 'Full day'.tr),
+          _Dot(AppColors.amber, 'Partial'.tr),
+          _Dot(AppColors.red, 'Absent (leave)'.tr),
+          _Dot(AppColors.muted, 'No shift'.tr),
         ]),
       ),
       TableCalendar(

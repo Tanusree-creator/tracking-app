@@ -8,7 +8,11 @@ import '../theme/app_theme.dart';
 import '../widgets/avatar.dart';
 import '../widgets/common.dart';
 import '../widgets/anim.dart';
+import '../widgets/tn_calendar.dart';
+import 'announcements_screen.dart';
 import 'chat_screens.dart';
+import 'leave_screen.dart';
+import 'staff_calendar.dart';
 import 'edit_profile_screen.dart';
 import 'face_verify_screen.dart';
 import 'profile_screen.dart' show AddPhotoBanner;
@@ -17,6 +21,7 @@ import 'leaderboard_screen.dart';
 import 'route_map_screen.dart';
 import 'tasks_screen.dart';
 import '../widgets/glass.dart';
+import '../l10n/l10n.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -36,13 +41,13 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Hi, ${me.name.split(' ').first}', style: const TextStyle(fontWeight: FontWeight.w700)),
+          Text(trf('Hi, {}', [me.name.split(' ').first]), style: const TextStyle(fontWeight: FontWeight.w700)),
           Text(DateFormat('EEEE, d MMMM').format(DateTime.now()),
               style: const TextStyle(fontSize: 12, color: AppColors.muted)),
         ]),
         actions: [
           IconButton(
-            tooltip: 'Chat with admin',
+            tooltip: 'Chat with admin'.tr,
             icon: Badge(isLabelVisible: tr.unreadChat > 0, label: Text('${tr.unreadChat}'), child: const Icon(Icons.chat_bubble_outline)),
             onPressed: () => Navigator.of(context).push(slideRoute(const EmployeeChatScreen())),
           ),
@@ -64,10 +69,10 @@ class HomeScreen extends StatelessWidget {
               Row(children: [
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(tr.clockedIn ? 'Clock Out' : 'Clock In',
+                    Text((tr.clockedIn ? 'Clock Out' : 'Clock In').tr,
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                     const SizedBox(height: 4),
-                    Text(tr.clockedIn ? 'Toggle off to end your shift' : 'Toggle on to start your shift',
+                    Text((tr.clockedIn ? 'Toggle off to end your shift' : 'Toggle on to start your shift').tr,
                         style: const TextStyle(color: AppColors.muted, fontSize: 13)),
                   ]),
                 ),
@@ -75,7 +80,7 @@ class HomeScreen extends StatelessWidget {
                   value: tr.clockedIn,
                   onChanged: (_) async {
                     if (tr.clockedIn) {
-                      if (!await confirm(context, 'End shift?', 'You worked ${fmtDuration(tr.hoursToday)} today.', action: 'End shift')) return;
+                      if (!await confirm(context, 'End shift?', trf('You worked {} today.', [fmtDuration(tr.hoursToday)]), action: 'End shift')) return;
                       await tr.clockOut();
                       if (context.mounted) snack(context, 'Shift ended');
                     } else {
@@ -93,10 +98,10 @@ class HomeScreen extends StatelessWidget {
               Row(children: [
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text('Break', style: TextStyle(fontWeight: FontWeight.w600)),
+                    Text('Break'.tr, style: TextStyle(fontWeight: FontWeight.w600)),
                     const SizedBox(height: 2),
                     Text(
-                      tr.clockedIn ? 'Toggle on when you take a break' : 'Clock in from Home to enable breaks',
+                      (tr.clockedIn ? 'Toggle on when you take a break' : 'Clock in from Home to enable breaks').tr,
                       style: const TextStyle(color: AppColors.muted, fontSize: 13),
                     ),
                   ]),
@@ -129,24 +134,32 @@ class HomeScreen extends StatelessWidget {
               borderColor: AppColors.amber,
               child: ListTile(
                 leading: const Icon(Icons.location_off, color: AppColors.amber),
-                title: Text(tr.locationError ?? 'Location signal lost'),
-                subtitle: const Text('Your admin cannot see your live position. Open Tracking to fix it.'),
+                title: Text((tr.locationError ?? 'Location signal lost').tr),
+                subtitle: Text('Your admin cannot see your live position. Open Tracking to fix it.'.tr),
               ),
             ),
           ),
+        TnCalendarCard(onTap: () => openStaffCalendar(context)).enter(),
+        const SizedBox(height: Sp.m),
+        Row(children: [
+          Expanded(child: _Quick(Icons.beach_access, 'Leave', () => Navigator.of(context).push(slideRoute(const LeaveScreen())))),
+          const SizedBox(width: Sp.m),
+          Expanded(child: _Quick(Icons.campaign, 'Announcements', () => Navigator.of(context).push(slideRoute(const AnnouncementsScreen())))),
+        ]),
+        const SizedBox(height: Sp.l),
         StatGrid([
-          StatTile(icon: Icons.timer_outlined, value: fmtDuration(tr.hoursToday), label: 'Hours today'),
+          StatTile(icon: Icons.timer_outlined, value: fmtDuration(tr.hoursToday), label: 'Hours today'.tr),
           StatTile(
             icon: Icons.task_alt,
             value: '${tr.jobsFinishedToday}',
-            label: 'Jobs finished',
+            label: 'Jobs finished'.tr,
             color: AppColors.green,
             onTap: () => Navigator.of(context).push(slideRoute(const FinishedJobsScreen())),
           ),
           StatTile(
             icon: Icons.route_outlined,
             value: '${tr.distanceTodayKm.toStringAsFixed(1)} km',
-            label: 'Distance today',
+            label: 'Distance today'.tr,
             color: AppColors.blue400,
             onTap: () => Navigator.of(context).push(slideRoute(RouteMapScreen.today(visits: tr.visits))),
           ),
@@ -159,6 +172,26 @@ class HomeScreen extends StatelessWidget {
       ]),
     );
   }
+}
+
+class _Quick extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  const _Quick(this.icon, this.label, this.onTap);
+
+  @override
+  Widget build(BuildContext context) => GlassCard(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: Sp.l, horizontal: Sp.m),
+          child: Row(children: [
+            Icon(icon, color: AppColors.accent),
+            const SizedBox(width: Sp.s),
+            Expanded(child: Text(label.tr, style: const TextStyle(fontWeight: FontWeight.w700), maxLines: 2)),
+          ]),
+        ),
+      );
 }
 
 /// Today's progress towards the admin's daily visit target, plus the streak and a way into the leaderboard.
@@ -188,13 +221,13 @@ class _TargetCard extends StatelessWidget {
           const SizedBox(width: Sp.l),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(hit ? 'Target reached. Great work!' : "Today's target", style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+              Text((hit ? 'Target reached. Great work!' : "Today's target").tr, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
               const SizedBox(height: 2),
-              Text(hit ? 'Every extra visit counts on the leaderboard.' : '${target - done} more visit${target - done == 1 ? '' : 's'} to go',
+              Text(hit ? 'Every extra visit counts on the leaderboard.'.tr : trf('{} more to go', [trCount(target - done, 'visit', 'visits')]),
                   style: const TextStyle(color: AppColors.muted, fontSize: 13)),
               const SizedBox(height: 8),
               Wrap(spacing: 6, runSpacing: 4, children: [
-                if (streak >= 1) StatusChip('$streak-day streak', AppColors.amber, icon: Icons.local_fire_department),
+                if (streak >= 1) StatusChip(trf('{}-day streak', [streak]), AppColors.amber, icon: Icons.local_fire_department),
                 const StatusChip('Leaderboard', AppColors.accent, icon: Icons.emoji_events_outlined),
               ]),
             ]),

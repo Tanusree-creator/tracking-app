@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Used to record voice messages in chat.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Merit Publication uses the camera to verify your face and to photograph visited places.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>

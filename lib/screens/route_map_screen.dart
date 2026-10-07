@@ -16,6 +16,7 @@ import '../widgets/common.dart';
 import '../widgets/dark_tracking_map.dart';
 import '../widgets/glass.dart';
 import '../widgets/map_pins.dart';
+import '../l10n/l10n.dart';
 
 typedef RouteLoader = Future<List<Map<String, dynamic>>> Function(DateTime from, DateTime to);
 
@@ -54,7 +55,7 @@ class RouteMapScreen extends StatefulWidget {
     final n = DateTime.now();
     return RouteMapScreen(
         key: key,
-        title: "Today's route",
+        title: "Today's route".tr,
         from: DateTime(n.year, n.month, n.day),
         to: DateTime(n.year, n.month, n.day, 23, 59, 59),
         live: true,
@@ -198,7 +199,7 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
           if (widget.live)
             isLive
                 ? const StatusChip('Live', AppColors.green)
-                : StatusChip(last == null ? 'No signal' : 'Last seen ${timeFmt.format(last.timestamp)}', AppColors.muted),
+                : StatusChip(last == null ? 'No signal' : trf('Last seen {}', [timeFmt.format(last.timestamp)]), AppColors.muted),
         ]),
         const SizedBox(height: Sp.m),
         Wrap(spacing: Sp.s, runSpacing: 4, children: [
@@ -227,7 +228,7 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
                   IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).maybePop()),
                   Expanded(child: Text(widget.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
                   IconButton(
-                    tooltip: 'Fit route',
+                    tooltip: 'Fit route'.tr,
                     icon: const Icon(Icons.center_focus_strong_outlined),
                     onPressed: _pts.length < 2 ? null : () => _map.fitCamera(CameraFit.coordinates(coordinates: [for (final p in _pts) LatLng(p.lat, p.lng)], padding: const EdgeInsets.all(72), maxZoom: 17)),
                   ),

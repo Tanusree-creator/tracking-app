@@ -11,6 +11,7 @@ import '../widgets/common.dart';
 import '../widgets/dark_tracking_map.dart';
 import '../widgets/map_pins.dart';
 import '../widgets/glass.dart';
+import '../l10n/l10n.dart';
 
 class TrackingScreen extends StatefulWidget {
   const TrackingScreen({super.key});
@@ -44,7 +45,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
     final (stateLabel, stateColor, stateIcon) = _state(tr);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Live Location', style: TextStyle(fontWeight: FontWeight.w700))),
+      appBar: AppBar(title: Text('Live Location'.tr, style: TextStyle(fontWeight: FontWeight.w700))),
       body: ListView(padding: Sp.screen, children: [
         GlassCard(
           child: Padding(
@@ -55,12 +56,12 @@ class _TrackingScreenState extends State<TrackingScreen> {
                 const SizedBox(width: Sp.m),
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text('Live tracking', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                    Text('Live tracking'.tr, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
                     const SizedBox(height: 2),
                     Text(
-                      tr.clockedIn
+                      (tr.clockedIn
                           ? (tr.onBreak ? 'Paused while you are on break' : 'Your admin can see where you are')
-                          : 'Starts automatically when you clock in',
+                          : 'Starts automatically when you clock in').tr,
                       style: const TextStyle(color: AppColors.muted, fontSize: 13),
                     ),
                   ]),
@@ -84,7 +85,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
         ],
         if (tr.signalLost) ...[
           const SizedBox(height: Sp.m),
-          const _Banner(icon: Icons.signal_cellular_connected_no_internet_0_bar, color: AppColors.amber, text: 'No location for 3 minutes. Check GPS, then battery settings below.'),
+          _Banner(icon: Icons.signal_cellular_connected_no_internet_0_bar, color: AppColors.amber, text: 'No location for 3 minutes. Check GPS, then battery settings below.'.tr),
         ],
         const SizedBox(height: Sp.m),
         DarkTrackingMap(
@@ -105,21 +106,21 @@ class _TrackingScreenState extends State<TrackingScreen> {
               child: Column(children: [
                 const Icon(Icons.location_searching, size: 40, color: AppColors.muted),
                 const SizedBox(height: Sp.s),
-                const Text('No location data yet today', style: TextStyle(color: AppColors.muted)),
+                Text('No location data yet today'.tr, style: TextStyle(color: AppColors.muted)),
                 const SizedBox(height: Sp.m),
                 OutlinedButton.icon(
                   onPressed: () => tr.locateOnce(prompt: true),
                   icon: const Icon(Icons.my_location),
-                  label: const Text('Enable location'),
+                  label: Text('Enable location'.tr),
                 ),
               ]),
             ),
           )
         else if (route.isNotEmpty)
           Row(children: [
-            Expanded(child: StatTile(icon: Icons.route, value: '${tr.distanceTodayKm.toStringAsFixed(2)} km', label: 'Distance Travelled')),
+            Expanded(child: StatTile(icon: Icons.route, value: '${tr.distanceTodayKm.toStringAsFixed(2)} km', label: 'Distance Travelled'.tr)),
             const SizedBox(width: Sp.m),
-            Expanded(child: StatTile(icon: Icons.pin_drop, value: '${route.length}', label: 'Points Recorded', color: AppColors.green)),
+            Expanded(child: StatTile(icon: Icons.pin_drop, value: '${route.length}', label: 'Points Recorded'.tr, color: AppColors.green)),
           ]),
         const SizedBox(height: Sp.l),
         GlassCard(
@@ -130,13 +131,12 @@ class _TrackingScreenState extends State<TrackingScreen> {
               const SizedBox(width: Sp.m),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text('Keep tracking running', style: TextStyle(fontWeight: FontWeight.w600)),
+                  Text('Keep tracking running'.tr, style: TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: Sp.xs),
-                  const Text(
-                    'Some phones stop apps in the background. Allow location "all the time" and set battery usage for Merit Publication to "Unrestricted".',
+                  Text('Some phones stop apps in the background. Allow location "all the time" and set battery usage for Merit Publication to "Unrestricted".'.tr,
                     style: TextStyle(color: AppColors.muted, fontSize: 13),
                   ),
-                  TextButton(onPressed: LocationService.openSettings, child: const Text('Open app settings')),
+                  TextButton(onPressed: LocationService.openSettings, child: Text('Open app settings'.tr)),
                 ]),
               ),
             ]),
@@ -161,8 +161,8 @@ class _Banner extends StatelessWidget {
         child: Row(children: [
           Icon(icon, color: color),
           const SizedBox(width: 10),
-          Expanded(child: Text(text)),
-          if (action != null) TextButton(onPressed: action!.$2, child: Text(action!.$1)),
+          Expanded(child: Text(text.tr)),
+          if (action != null) TextButton(onPressed: action!.$2, child: Text(action!.$1.tr)),
         ]),
       );
 }

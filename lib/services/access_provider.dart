@@ -15,10 +15,20 @@ class AccessProvider extends ChangeNotifier {
   DateTime? lastUpdated;
   String? error;
 
+  bool get isOffice => me?.isOffice ?? false;
   bool get signedIn => isAdmin || me != null;
   bool hasFace = false; // an enrolled reference photo exists on the server
 
   List<Employee> _live = [];
+
+  /// Leave requests waiting for the admin (badge on the dashboard).
+  int pendingLeaves = 0;
+
+  void setPendingLeaves(int n) {
+    if (n == pendingLeaves) return;
+    pendingLeaves = n;
+    notifyListeners();
+  }
 
   /// Profile photos, decoded once. `myAvatar` is the signed-in employee's; `avatars` is every employee's (admin).
   Uint8List? myAvatar;
@@ -41,7 +51,7 @@ class AccessProvider extends ChangeNotifier {
       myAvatar = _decode(p['avatar'] as String?);
       final m = me;
       if (m != null) {
-        me = Employee(id: m.id, name: p['name'] as String, email: m.email, title: (p['role_title'] ?? m.title) as String, district: m.district, phone: p['phone'] as String?);
+        me = Employee(id: m.id, name: p['name'] as String, email: m.email, title: (p['role_title'] ?? m.title) as String, district: m.district, phone: p['phone'] as String?, staffType: m.staffType);
       }
       notifyListeners();
     } catch (_) {} // 005_profile_photo_map.sql not run yet: keep initials
@@ -73,6 +83,7 @@ class AccessProvider extends ChangeNotifier {
             email: res['email'] as String,
             title: (res['role_title'] ?? 'Field Technician') as String,
             district: (res['district'] ?? 'East District') as String,
+            staffType: (res['staff_type'] ?? 'field') as String,
           );
   }
 
@@ -112,7 +123,7 @@ class AccessProvider extends ChangeNotifier {
     final res = await Api.updateProfile(name, phone, title, avatarB64);
     final m = me!;
     me = Employee(
-        id: m.id, name: res['name'] as String, email: m.email, title: (res['role_title'] ?? m.title) as String, district: m.district, phone: res['phone'] as String?);
+        id: m.id, name: res['name'] as String, email: m.email, title: (res['role_title'] ?? m.title) as String, district: m.district, phone: res['phone'] as String?, staffType: m.staffType);
     if (avatarB64 != null) myAvatar = _decode(res['avatar'] as String?);
     notifyListeners();
   }
@@ -131,6 +142,9 @@ class AccessProvider extends ChangeNotifier {
       } catch (_) {
         _live = []; // 004_field_sync.sql not run yet: fall back to the plain roster
       }
+      try {
+        pendingLeaves = (await Api.adminLeaves()).where((l) => l['status'] == 'pending').length;
+      } catch (_) {} // 007 not run yet
       lastUpdated = DateTime.now();
       if (!silent || avatars.isEmpty) {
         try {
@@ -153,13 +167,18 @@ class AccessProvider extends ChangeNotifier {
       .map((e) => AccessRequest(e, DateTime.now()))
       .toList();
 
+  Future<void> setStaffType(Employee e, String type) async {
+    await Api.setStaffType(e.id, type);
+    await refresh();
+  }
+
   Future<void> setStatus(Employee e, AccessStatus s) async {
     await Api.setStatus(e.id, s.name);
     await refresh();
   }
 
-  Future<Map<String, dynamic>> createUser(String name, String email, String? password) async {
-    final res = await Api.createUser(name, email, password);
+  Future<Map<String, dynamic>> createUser(String name, String email, String? password, {String staffType = 'field'}) async {
+    final res = await Api.createUser(name, email, password, staffType: staffType);
     await refresh();
     return res;
   }

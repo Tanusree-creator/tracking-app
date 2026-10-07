@@ -16,6 +16,7 @@ import '../../widgets/dark_tracking_map.dart';
 import '../../widgets/glass.dart';
 import '../../widgets/map_pins.dart';
 import 'admin_employee_detail_screen.dart';
+import '../../l10n/l10n.dart';
 
 /// Everyone's last known position (live feed) plus the task locations, on one map.
 class AdminLiveMapScreen extends StatefulWidget {
@@ -117,14 +118,14 @@ class _AdminLiveMapScreenState extends State<AdminLiveMapScreen> {
                 radius: 26,
                 child: Row(children: [
                   IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).maybePop()),
-                  const Expanded(child: Text('Live field map', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
+                  Expanded(child: Text('Live field map'.tr, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
                   IconButton(
                     tooltip: _tasksOn ? 'Hide task locations' : 'Show task locations',
                     icon: Icon(_tasksOn ? Icons.flag_rounded : Icons.flag_outlined, color: _tasksOn ? AppColors.red : null),
                     onPressed: () => setState(() => _tasksOn = !_tasksOn),
                   ),
                   IconButton(
-                    tooltip: 'Refresh',
+                    tooltip: 'Refresh'.tr,
                     icon: const Icon(Icons.refresh),
                     onPressed: () {
                       access.refresh(silent: true);
@@ -147,7 +148,7 @@ class _AdminLiveMapScreenState extends State<AdminLiveMapScreen> {
                 radius: 24,
                 padding: const EdgeInsets.all(Sp.m),
                 child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(emps.isEmpty ? 'No employee positions yet' : '${emps.length} employee${emps.length == 1 ? '' : 's'} on the map', style: const TextStyle(fontWeight: FontWeight.w800)),
+                  Text(emps.isEmpty ? 'No employee positions yet'.tr : trf('{} on the map', [trCount(emps.length, 'employee', 'employees')]), style: const TextStyle(fontWeight: FontWeight.w800)),
                   const SizedBox(height: Sp.s),
                   const Wrap(spacing: Sp.s, runSpacing: 4, children: [
                     StatusChip('Live', AppColors.green),

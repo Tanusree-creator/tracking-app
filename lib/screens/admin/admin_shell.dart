@@ -11,6 +11,8 @@ import '../../widgets/brand.dart';
 import '../../widgets/common.dart';
 import '../../widgets/glass.dart';
 import '../../widgets/sticky_notification_banner.dart';
+import '../../widgets/language_picker.dart';
+import '../../l10n/l10n.dart';
 import '../chat_screens.dart';
 import '../login_screen.dart';
 import 'admin_access_screen.dart';
@@ -55,7 +57,7 @@ class _AdminShellState extends State<AdminShell> {
     final nav = Navigator.of(context);
     notifications.stopAdminPolling();
     await access.logout();
-    nav.pushAndRemoveUntil(slideRoute(const LoginScreen()), (_) => false);
+    nav.pushAndRemoveUntil(fadeRoute(const LoginScreen()), (_) => false);
   }
 
   @override
@@ -71,20 +73,21 @@ class _AdminShellState extends State<AdminShell> {
         title: Row(children: [
           BrandLogo(size: 56, white: Theme.of(context).brightness == Brightness.dark),
           const SizedBox(width: 10),
-          Text(_titles[_i], style: const TextStyle(fontWeight: FontWeight.w800)),
+          Text(_titles[_i].tr, style: const TextStyle(fontWeight: FontWeight.w800)),
         ]),
         actions: [
+          const LanguageButton(),
           IconButton(
-            tooltip: 'Manage admins',
+            tooltip: 'Manage admins'.tr,
             icon: const Icon(Icons.admin_panel_settings_outlined),
             onPressed: () => Navigator.of(context).push(slideRoute(const AdminAdminsScreen())),
           ),
-          IconButton(tooltip: 'Log out', icon: const Icon(Icons.logout), onPressed: _logout),
+          IconButton(tooltip: 'Log out'.tr, icon: const Icon(Icons.logout), onPressed: _logout),
         ],
       ),
       body: Column(children: [
         const StickyNotificationBanner(audience: AlertAudience.admin),
-        Expanded(child: IndexedStack(index: _i, children: _pages)),
+        Expanded(child: AnimatedTabStack(index: _i, children: _pages)),
       ]),
       bottomNavigationBar: GlassBottomNav(
         index: _i,

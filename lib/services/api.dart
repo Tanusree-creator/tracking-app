@@ -87,11 +87,22 @@ class Api {
   static Future<void> register(String name, String email, String password) =>
       _rpc('register_employee', {'p_name': name, 'p_email': email, 'p_password': password});
 
-  static Future<Map<String, dynamic>> createUser(String name, String email, String? password) async {
-    final res = await _rpc('admin_create_user',
-        {'p_token': _token, 'p_name': name, 'p_email': email, 'p_password': password});
-    return Map<String, dynamic>.from(res as Map);
+  static Future<Map<String, dynamic>> createUser(String name, String email, String? password, {String staffType = 'field'}) async {
+    try {
+      final res = await _rpc('admin_create_user_v2',
+          {'p_token': _token, 'p_name': name, 'p_email': email, 'p_password': password, 'p_staff_type': staffType});
+      return Map<String, dynamic>.from(res as Map);
+    } on Exception catch (e) {
+      // 007 not run yet: only marketing staff can be created.
+      if (!e.toString().contains('admin_create_user_v2') || staffType != 'field') rethrow;
+      final res = await _rpc('admin_create_user',
+          {'p_token': _token, 'p_name': name, 'p_email': email, 'p_password': password});
+      return Map<String, dynamic>.from(res as Map);
+    }
   }
+
+  static Future<void> setStaffType(String userId, String type) =>
+      _rpc('admin_set_staff_type', {'p_token': _token, 'p_user': userId, 'p_staff_type': type});
 
   static Future<List<Map<String, dynamic>>> users() async {
     final res = await _rpc('admin_list_users', {'p_token': _token});
@@ -262,4 +273,99 @@ class Api {
         'p_token': _token,
         'p_since': since.toUtc().toIso8601String(),
       }) as List);
+
+  // ── chat photos / voice ────────────────────────────────────────────────────
+  static Future<void> sendChatMedia(String kind, String media) =>
+      _rpc('send_chat_media', {'p_token': _token, 'p_kind': kind, 'p_media': media, 'p_body': ''});
+
+  static Future<void> adminSendChatMedia(String userId, String kind, String media) =>
+      _rpc('admin_send_chat_media', {'p_token': _token, 'p_user': userId, 'p_kind': kind, 'p_media': media, 'p_body': ''});
+
+  static Future<String?> chatMedia(String id) async => await _rpc('my_chat_media', {'p_token': _token, 'p_id': id}) as String?;
+
+  static Future<String?> adminChatMedia(String id) async => await _rpc('admin_chat_media', {'p_token': _token, 'p_id': id}) as String?;
+
+  // ── office staff: tasks, follow-ups, leave, announcements ──────────────────
+  static List<Map<String, dynamic>> _list(dynamic r) => List<Map<String, dynamic>>.from(r as List);
+
+  static Future<List<Map<String, dynamic>>> myOfficeTasks() async => _list(await _rpc('my_office_tasks', {'p_token': _token}));
+
+  static Future<void> syncOfficeTask(Map<String, dynamic> t) => _rpc('sync_office_task', {
+        'p_token': _token,
+        'p_id': t['id'],
+        'p_title': t['title'],
+        'p_note': t['note'],
+        'p_due': t['due'],
+        'p_status': t['status'],
+      });
+
+  static Future<void> deleteOfficeTask(String id) => _rpc('delete_office_task', {'p_token': _token, 'p_id': id});
+
+  static Future<List<Map<String, dynamic>>> myFollowUps() async => _list(await _rpc('my_follow_ups', {'p_token': _token}));
+
+  static Future<void> syncFollowUp(Map<String, dynamic> f) => _rpc('sync_follow_up', {
+        'p_token': _token,
+        'p_id': f['id'],
+        'p_name': f['name'],
+        'p_org': f['org'],
+        'p_phone': f['phone'],
+        'p_purpose': f['purpose'],
+        'p_kind': f['kind'],
+        'p_remind': f['remind'],
+        'p_status': f['status'],
+        'p_result': f['result'],
+      });
+
+  static Future<void> deleteFollowUp(String id) => _rpc('delete_follow_up', {'p_token': _token, 'p_id': id});
+
+  static Future<List<Map<String, dynamic>>> myLeaves() async => _list(await _rpc('my_leaves', {'p_token': _token}));
+
+  static Future<void> requestLeave(DateTime from, DateTime to, String reason) => _rpc('request_leave', {
+        'p_token': _token,
+        'p_from': _ymd(from),
+        'p_to': _ymd(to),
+        'p_reason': reason,
+      });
+
+  static Future<void> cancelLeave(String id) => _rpc('cancel_leave', {'p_token': _token, 'p_id': id});
+
+  static String _ymd(DateTime d) => '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  static Future<List<Map<String, dynamic>>> myAnnouncements() async => _list(await _rpc('my_announcements', {'p_token': _token}));
+
+  // admin
+  static Future<void> adminCreateOfficeTask(String userId, String title, String note, DateTime due) => _rpc('admin_create_office_task', {
+        'p_token': _token,
+        'p_user': userId,
+        'p_title': title,
+        'p_note': note,
+        'p_due': due.toUtc().toIso8601String(),
+      });
+
+  static Future<List<Map<String, dynamic>>> adminOfficeTasks([String? userId]) async =>
+      _list(await _rpc('admin_office_tasks', {'p_token': _token, 'p_user': userId}));
+
+  static Future<List<Map<String, dynamic>>> adminFollowUps([String? userId]) async =>
+      _list(await _rpc('admin_follow_ups', {'p_token': _token, 'p_user': userId}));
+
+  static Future<List<Map<String, dynamic>>> adminLeaves([String? userId]) async =>
+      _list(await _rpc('admin_leaves', {'p_token': _token, 'p_user': userId}));
+
+  static Future<void> adminDecideLeave(String id, bool approve) =>
+      _rpc('admin_decide_leave', {'p_token': _token, 'p_id': id, 'p_approve': approve});
+
+  static Future<Map<String, dynamic>> adminCalendar(DateTime from, DateTime to, [String? userId]) async =>
+      Map<String, dynamic>.from(await _rpc('admin_calendar', {
+        'p_token': _token,
+        'p_from': from.toUtc().toIso8601String(),
+        'p_to': to.toUtc().toIso8601String(),
+        'p_user': userId,
+      }) as Map);
+
+  static Future<void> adminCreateAnnouncement(String title, String body, String? image, String audience) => _rpc('admin_create_announcement',
+      {'p_token': _token, 'p_title': title, 'p_body': body, 'p_image': image, 'p_audience': audience});
+
+  static Future<List<Map<String, dynamic>>> adminAnnouncements() async => _list(await _rpc('admin_list_announcements', {'p_token': _token}));
+
+  static Future<void> adminDeleteAnnouncement(String id) => _rpc('admin_delete_announcement', {'p_token': _token, 'p_id': id});
 }

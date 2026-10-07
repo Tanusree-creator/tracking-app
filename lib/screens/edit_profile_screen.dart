@@ -11,6 +11,7 @@ import '../theme/app_theme.dart';
 import '../widgets/avatar.dart';
 import '../widgets/common.dart';
 import '../widgets/glass.dart';
+import '../l10n/l10n.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -70,7 +71,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             ListTile(
               leading: const Icon(Icons.photo_camera_outlined),
-              title: const Text('Take a photo'),
+              title: Text('Take a photo'.tr),
               onTap: () {
                 Navigator.pop(ctx);
                 _pick(ImageSource.camera);
@@ -78,7 +79,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Choose from gallery'),
+              title: Text('Choose from gallery'.tr),
               onTap: () {
                 Navigator.pop(ctx);
                 _pick(ImageSource.gallery);
@@ -87,7 +88,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             if (_photo != null)
               ListTile(
                 leading: const Icon(Icons.delete_outline, color: AppColors.red),
-                title: const Text('Remove photo', style: TextStyle(color: AppColors.red)),
+                title: Text('Remove photo'.tr, style: TextStyle(color: AppColors.red)),
                 onTap: () {
                   Navigator.pop(ctx);
                   setState(() {
@@ -122,7 +123,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Widget build(BuildContext context) {
     final me = context.watch<AccessProvider>().me!;
     return Scaffold(
-      appBar: AppBar(title: const Text('Edit profile')),
+      appBar: AppBar(title: Text('Edit profile'.tr)),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -145,13 +146,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       ),
                     ]),
                   ),
-                  TextButton(onPressed: _photoSheet, child: Text(_photo == null ? 'Add profile photo' : 'Change photo')),
+                  TextButton(onPressed: _photoSheet, child: Text((_photo == null ? 'Add profile photo' : 'Change photo').tr)),
                   const SizedBox(height: Sp.m),
                   GlowTextField(
                     controller: _name,
                     textCapitalization: TextCapitalization.words,
                     textInputAction: TextInputAction.next,
-                    decoration: const InputDecoration(labelText: 'Full name', prefixIcon: Icon(Icons.badge_outlined)),
+                    decoration: InputDecoration(labelText: 'Full name'.tr, prefixIcon: Icon(Icons.badge_outlined)),
                     validator: (v) => (v ?? '').trim().isEmpty ? 'Required' : null,
                   ),
                   const SizedBox(height: Sp.l),
@@ -159,26 +160,26 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     controller: _title,
                     textCapitalization: TextCapitalization.words,
                     textInputAction: TextInputAction.next,
-                    decoration: const InputDecoration(labelText: 'Position', hintText: 'e.g. Field Executive', prefixIcon: Icon(Icons.work_outline)),
+                    decoration: InputDecoration(labelText: 'Position'.tr, hintText: 'e.g. Field Executive'.tr, prefixIcon: Icon(Icons.work_outline)),
                     validator: (v) => (v ?? '').trim().isEmpty ? 'Required' : null,
                   ),
                   const SizedBox(height: Sp.l),
                   GlowTextField(
                     controller: _phone,
                     keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(labelText: 'Phone', prefixIcon: Icon(Icons.phone_outlined)),
+                    decoration: InputDecoration(labelText: 'Phone'.tr, prefixIcon: Icon(Icons.phone_outlined)),
                   ),
                   const SizedBox(height: Sp.l),
                   GlowTextField(
                     initialValue: me.email,
                     enabled: false,
-                    decoration: const InputDecoration(labelText: 'Email (set by admin)', prefixIcon: Icon(Icons.mail_outline)),
+                    decoration: InputDecoration(labelText: 'Email (set by admin)'.tr, prefixIcon: Icon(Icons.mail_outline)),
                   ),
-                  if (_error != null) Padding(padding: const EdgeInsets.only(top: Sp.m), child: Text(_error!, style: const TextStyle(color: AppColors.red))),
+                  if (_error != null) Padding(padding: const EdgeInsets.only(top: Sp.m), child: Text(_error!.tr, style: const TextStyle(color: AppColors.red))),
                   const SizedBox(height: Sp.xl),
                   FilledButton(
                     onPressed: _saving ? null : _save,
-                    child: _saving ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Save changes'),
+                    child: _saving ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : Text('Save changes'.tr),
                   ),
                 ]),
               ),

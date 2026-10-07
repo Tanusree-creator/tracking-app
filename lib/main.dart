@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'l10n/l10n.dart';
 import 'screens/splash_screen.dart';
 import 'services/access_provider.dart';
 import 'services/app_notifications_provider.dart';
 import 'services/notification_service.dart';
+import 'services/staff_provider.dart';
 import 'services/theme_controller.dart';
 import 'services/tracking_provider.dart';
 import 'theme/app_theme.dart';
@@ -21,25 +24,37 @@ Future<void> main() async {
   await NotificationService.instance.init();
   final theme = ThemeController();
   await theme.load();
-  runApp(FieldFlowApp(theme: theme));
+  final l10n = L10n();
+  await l10n.load();
+  runApp(FieldFlowApp(theme: theme, l10n: l10n));
 }
 
 class FieldFlowApp extends StatelessWidget {
   final ThemeController theme;
-  const FieldFlowApp({super.key, required this.theme});
+  final L10n l10n;
+  const FieldFlowApp({super.key, required this.theme, required this.l10n});
 
   @override
   Widget build(BuildContext context) => MultiProvider(
         providers: [
           ChangeNotifierProvider.value(value: theme),
+          ChangeNotifierProvider.value(value: l10n),
           ChangeNotifierProvider(create: (_) => AccessProvider()),
           ChangeNotifierProvider(create: (_) => AppNotificationsProvider()),
           ChangeNotifierProvider(create: (c) => TrackingProvider(c.read<AppNotificationsProvider>())),
+          ChangeNotifierProvider(create: (c) => StaffProvider(c.read<AppNotificationsProvider>())),
         ],
-        child: Consumer<ThemeController>(
-          builder: (_, tc, _) => MaterialApp(
-            title: 'Merit Publication',
+        child: Consumer2<ThemeController, L10n>(
+          builder: (_, tc, l, _) => MaterialApp(
+            title: 'Merit Publication'.tr,
             debugShowCheckedModeBanner: false,
+            locale: l.lang.locale,
+            supportedLocales: [for (final x in AppLang.values) x.locale],
+            localizationsDelegates: const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
             themeMode: tc.mode,
             theme: buildTheme(Brightness.light),
             darkTheme: buildTheme(Brightness.dark),

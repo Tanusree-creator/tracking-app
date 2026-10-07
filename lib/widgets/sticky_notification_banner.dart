@@ -8,6 +8,7 @@ import '../models/models.dart';
 import '../services/app_notifications_provider.dart';
 import '../theme/app_theme.dart';
 import 'glass.dart';
+import '../l10n/l10n.dart';
 
 /// Pinned to the top of a shell; shows the latest unread alert for [audience]
 /// and dismisses itself after a few seconds.
@@ -54,8 +55,8 @@ class _StickyNotificationBannerState extends State<StickyNotificationBanner> {
                   child: ListTile(
                     dense: true,
                     leading: const Icon(Icons.notifications_active_rounded, color: AppColors.accent),
-                    title: Text(alert.title, style: const TextStyle(fontWeight: FontWeight.w600)),
-                    subtitle: Text(alert.body, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    title: Text(alert.title.tr, style: const TextStyle(fontWeight: FontWeight.w600)),
+                    subtitle: Text(alert.body.tr, maxLines: 1, overflow: TextOverflow.ellipsis),
                     trailing: IconButton(icon: const Icon(Icons.close), onPressed: () => provider.markRead(alert)),
                   ),
                 ).animate(key: ValueKey(alert.id)).slideY(begin: -.4, end: 0, duration: 300.ms, curve: Curves.easeOutCubic).fadeIn(duration: 300.ms),

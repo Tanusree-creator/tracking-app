@@ -2,11 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
-import '../services/api.dart';
-
 import '../theme/app_theme.dart';
-import 'common.dart';
-import 'glass.dart';
+import '../l10n/l10n.dart';
 
 /// A Tamil Nadu public holiday. [approx] = depends on moon sighting / panchangam, so it can shift by a day.
 class TnHoliday {
@@ -121,9 +118,19 @@ String tamilMonth(DateTime d) {
   return names[i];
 }
 
+/// The same Tamil solar month, in Tamil script.
+String tamilMonthScript(DateTime d) {
+  const script = {
+    'Thai': 'தை', 'Maasi': 'மாசி', 'Panguni': 'பங்குனி', 'Chithirai': 'சித்திரை', 'Vaikasi': 'வைகாசி', 'Aani': 'ஆனி',
+    'Aadi': 'ஆடி', 'Aavani': 'ஆவணி', 'Purattasi': 'புரட்டாசி', 'Aippasi': 'ஐப்பசி', 'Karthigai': 'கார்த்திகை', 'Margazhi': 'மார்கழி',
+  };
+  return script[tamilMonth(d)] ?? '';
+}
+
 /// Blue dashboard card: today's date, Tamil month and the next holiday. Tap to open the full calendar.
 class TnCalendarCard extends StatelessWidget {
-  const TnCalendarCard({super.key});
+  final VoidCallback onTap;
+  const TnCalendarCard({super.key, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -132,7 +139,7 @@ class TnCalendarCard extends StatelessWidget {
     final today = tnHolidayOn(now);
     final days = next?.date.difference(DateTime(now.year, now.month, now.day)).inDays;
     return GestureDetector(
-      onTap: () => showTnCalendar(context),
+      onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(Sp.l),
         decoration: BoxDecoration(
@@ -155,16 +162,16 @@ class TnCalendarCard extends StatelessWidget {
           const SizedBox(width: Sp.l),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('Tamil Nadu calendar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
+              Text('Tamil Nadu calendar'.tr, style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
               const SizedBox(height: 2),
-              Text('${tamilMonth(now)} month · ${DateFormat('MMMM y').format(now)}', style: const TextStyle(color: Colors.white70, fontSize: 12.5)),
+              Text('${tamilMonthScript(now)} · ${DateFormat('MMMM y').format(now)}', style: const TextStyle(color: Colors.white70, fontSize: 12.5)),
               const SizedBox(height: 8),
               Text(
                 today != null
-                    ? 'Today: ${today.name}'
+                    ? trf('Today: {}', [today.name.tr])
                     : next == null
-                        ? 'No holiday listed'
-                        : 'Next: ${next.name} · ${days == 1 ? 'tomorrow' : 'in $days days'}',
+                        ? 'No holiday listed'.tr
+                        : trf('Next: {} · {}', [next.name.tr, days == 1 ? 'tomorrow'.tr : trf('in {} days', [days])]),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
@@ -176,190 +183,4 @@ class TnCalendarCard extends StatelessWidget {
       ),
     );
   }
-}
-
-void showTnCalendar(BuildContext context) => showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (_) => const _TnCalendarSheet(),
-    );
-
-class _TnCalendarSheet extends StatefulWidget {
-  const _TnCalendarSheet();
-
-  @override
-  State<_TnCalendarSheet> createState() => _TnCalendarSheetState();
-}
-
-class _TnCalendarSheetState extends State<_TnCalendarSheet> {
-  DateTime _focused = DateTime.now();
-  DateTime _selected = DateTime.now();
-  Map<DateTime, List<Map<String, dynamic>>> _tasks = {};
-
-  @override
-  void initState() {
-    super.initState();
-    _loadTasks();
-  }
-
-  DateTime _day(DateTime d) => DateTime(d.year, d.month, d.day);
-
-  /// Tasks of every employee for the visible month (plus the grey days around it).
-  Future<void> _loadTasks() async {
-    final from = DateTime(_focused.year, _focused.month - 1, 20);
-    final to = DateTime(_focused.year, _focused.month + 1, 12);
-    try {
-      final rows = await Api.adminTasksRange(from, to);
-      final byDay = <DateTime, List<Map<String, dynamic>>>{};
-      for (final r in rows) {
-        final at = DateTime.parse(r['scheduled_time'] as String).toLocal();
-        byDay.putIfAbsent(_day(at), () => []).add(r);
-      }
-      if (mounted) setState(() => _tasks = {..._tasks, ...byDay});
-    } catch (_) {} // 005_profile_photo_map.sql not run yet: holidays only
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final monthHolidays = tnHolidays(_focused.year).where((h) => h.date.month == _focused.month).toList();
-    final picked = tnHolidayOn(_selected);
-    final ink = dark ? Colors.white : AppColors.blue800;
-    BoxDecoration dot(Color c, {bool outline = false}) => BoxDecoration(
-        shape: BoxShape.circle, color: outline ? null : c, border: outline ? Border.all(color: c, width: 1.6) : null);
-    return ListView(padding: const EdgeInsets.fromLTRB(Sp.l, 0, Sp.l, Sp.xl), children: [
-      Row(children: [
-        Expanded(child: Text('Tamil Nadu calendar', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800, color: AppColors.accent))),
-        TextButton(onPressed: () => setState(() => _focused = _selected = DateTime.now()), child: const Text('Today')),
-      ]),
-      Text('${tamilMonth(_focused)} month (Tamil)', style: const TextStyle(color: AppColors.muted)),
-      const SizedBox(height: Sp.s),
-      GlassCard(
-        padding: const EdgeInsets.all(Sp.s),
-        child: TableCalendar(
-          firstDay: DateTime(2024),
-          lastDay: DateTime(2029, 12, 31),
-          focusedDay: _focused,
-          selectedDayPredicate: (d) => isSameDay(d, _selected),
-          holidayPredicate: (d) => tnHolidayOn(d) != null,
-          onDaySelected: (s, f) => setState(() {
-            _selected = s;
-            _focused = f;
-          }),
-          onPageChanged: (f) {
-            setState(() => _focused = f);
-            _loadTasks();
-          },
-          eventLoader: (d) => _tasks[_day(d)] ?? const [],
-          calendarBuilders: CalendarBuilders(markerBuilder: (_, day, events) {
-            if (events.isEmpty) return null;
-            final open = events.any((e) => (e as Map)['status'] != 'completed');
-            return Positioned(
-              bottom: 3,
-              child: Container(width: 7, height: 7, decoration: BoxDecoration(shape: BoxShape.circle, color: open ? AppColors.amber : AppColors.green)),
-            );
-          }),
-          startingDayOfWeek: StartingDayOfWeek.sunday,
-          headerStyle: HeaderStyle(
-            formatButtonVisible: false,
-            titleCentered: true,
-            titleTextStyle: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: ink),
-            leftChevronIcon: const Icon(Icons.chevron_left, color: AppColors.accent),
-            rightChevronIcon: const Icon(Icons.chevron_right, color: AppColors.accent),
-          ),
-          daysOfWeekStyle: DaysOfWeekStyle(
-            weekdayStyle: const TextStyle(color: AppColors.accent, fontWeight: FontWeight.w700, fontSize: 12),
-            weekendStyle: const TextStyle(color: AppColors.blue400, fontWeight: FontWeight.w700, fontSize: 12),
-          ),
-          calendarStyle: CalendarStyle(
-            defaultTextStyle: TextStyle(color: ink),
-            weekendTextStyle: const TextStyle(color: AppColors.blue400, fontWeight: FontWeight.w600),
-            outsideTextStyle: const TextStyle(color: AppColors.muted),
-            todayDecoration: dot(AppColors.accent, outline: true),
-            todayTextStyle: TextStyle(color: ink, fontWeight: FontWeight.w800),
-            selectedDecoration: const BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(colors: [AppColors.blue600, AppColors.blue400])),
-            selectedTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
-            holidayDecoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.accent.withValues(alpha: .18), border: Border.all(color: AppColors.accent.withValues(alpha: .6))),
-            holidayTextStyle: TextStyle(color: dark ? AppColors.blue200 : AppColors.blue700, fontWeight: FontWeight.w800),
-          ),
-        ),
-      ),
-      const SizedBox(height: Sp.m),
-      if (picked != null)
-        _HolidayTile(picked, highlighted: true)
-      else
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: Sp.s),
-          child: Text('${DateFormat('EEEE, d MMMM').format(_selected)} · ${tamilMonth(_selected)} · no holiday', style: const TextStyle(color: AppColors.muted)),
-        ),
-      ..._dayTasks(),
-      const SizedBox(height: Sp.s),
-      Text('Holidays in ${DateFormat('MMMM y').format(_focused)}', style: const TextStyle(fontWeight: FontWeight.w800)),
-      const SizedBox(height: Sp.s),
-      if (monthHolidays.isEmpty)
-        const Text('No public holidays this month.', style: TextStyle(color: AppColors.muted))
-      else
-        for (final h in monthHolidays) _HolidayTile(h),
-      const SizedBox(height: Sp.m),
-      const Text(
-        'Dates marked ≈ follow the moon or the panchangam and can move by a day. Confirm with the official Tamil Nadu Government holiday list.',
-        style: TextStyle(color: AppColors.muted, fontSize: 11.5),
-      ),
-    ]);
-  }
-}
-
-extension on _TnCalendarSheetState {
-  /// Tasks on the selected day. Amber dot = still open, green = closed (admin was notified when it closed).
-  List<Widget> _dayTasks() {
-    final list = _tasks[_day(_selected)] ?? const <Map<String, dynamic>>[];
-    if (list.isEmpty) return const [];
-    return [
-      const SizedBox(height: Sp.s),
-      Text('Tasks on ${DateFormat('d MMM').format(_selected)}', style: const TextStyle(fontWeight: FontWeight.w800)),
-      const SizedBox(height: Sp.s),
-      for (final t in list)
-        Padding(
-          padding: const EdgeInsets.only(bottom: Sp.s),
-          child: GlassCard(
-            child: ListTile(
-              dense: true,
-              leading: Icon(t['status'] == 'completed' ? Icons.check_circle : Icons.schedule,
-                  color: t['status'] == 'completed' ? AppColors.green : AppColors.amber),
-              title: Text(t['title'] as String, style: const TextStyle(fontWeight: FontWeight.w700)),
-              subtitle: Text('${t['user_name']} · ${DateFormat('h:mm a').format(DateTime.parse(t['scheduled_time'] as String).toLocal())}'),
-              trailing: StatusChip(t['status'] == 'completed' ? 'Closed' : (t['status'] == 'inProgress' ? 'In progress' : 'Open'),
-                  t['status'] == 'completed' ? AppColors.green : AppColors.amber),
-            ),
-          ),
-        ),
-    ];
-  }
-}
-
-class _HolidayTile extends StatelessWidget {
-  final TnHoliday h;
-  final bool highlighted;
-  const _HolidayTile(this.h, {this.highlighted = false});
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: Sp.s),
-        child: GlassCard(
-          borderColor: highlighted ? AppColors.accent : null,
-          child: ListTile(
-            dense: true,
-            leading: Container(
-              width: 40,
-              height: 40,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(color: AppColors.accent.withValues(alpha: .15), borderRadius: BorderRadius.circular(12)),
-              child: Text('${h.date.day}', style: const TextStyle(color: AppColors.accent, fontWeight: FontWeight.w800, fontSize: 16)),
-            ),
-            title: Text(h.name, style: const TextStyle(fontWeight: FontWeight.w700)),
-            subtitle: Text('${DateFormat('EEEE, d MMM').format(h.date)}${h.approx ? '  ≈' : ''}'),
-          ),
-        ),
-      );
 }

@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:provider/provider.dart';
 
+import '../../models/models.dart';
 import '../../services/access_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/anim.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/common.dart';
+import '../../l10n/l10n.dart';
 import 'admin_employee_detail_screen.dart';
+import 'open_employee.dart';
 import 'admin_live_map_screen.dart';
 import '../../widgets/glass.dart';
 
@@ -34,14 +38,14 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
         child: FloatingActionButton.extended(
         onPressed: () => showDialog(context: context, builder: (_) => const _CreateUserDialog()),
         icon: const Icon(Icons.person_add),
-        label: const Text('New Employee'),
+        label: Text('New Employee'.tr),
       ),
       ),
       body: Column(children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
           child: GlowTextField(
-            decoration: const InputDecoration(hintText: 'Look Up employee', prefixIcon: Icon(Icons.search)),
+            decoration: InputDecoration(hintText: 'Look Up employee'.tr, prefixIcon: Icon(Icons.search)),
             onChanged: (v) => setState(() => _q = v.trim().toLowerCase()),
           ),
         ),
@@ -51,15 +55,15 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
             onTap: () => Navigator.of(context).push(slideRoute(const AdminLiveMapScreen())),
             child: ListTile(
               leading: const CircleAvatar(backgroundColor: AppColors.surfaceHigh, child: Icon(Icons.map_outlined, color: AppColors.accent)),
-              title: const Text('Live field map', style: TextStyle(fontWeight: FontWeight.w700)),
-              subtitle: const Text('Where everyone is now, plus task locations'),
+              title: Text('Live field map'.tr, style: TextStyle(fontWeight: FontWeight.w700)),
+              subtitle: Text('Where everyone is now, plus task locations'.tr),
               trailing: const Icon(Icons.chevron_right, color: AppColors.muted),
             ),
           ),
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: SectionTitle('Employee Registry · Approved Employees (${list.length})'),
+          child: SectionTitle(trf('Employee Registry · Approved Employees ({})', [list.length])),
         ),
         if (access.error != null) Padding(padding: const EdgeInsets.symmetric(horizontal: 16), child: Text(access.error!, style: const TextStyle(color: AppColors.red))),
         Expanded(
@@ -77,9 +81,10 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                       child: ListTile(
                         leading: UserAvatar(photo: access.avatarOf(e.id), initials: e.initials, radius: 22),
                         title: Text(e.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                        subtitle: Text('${e.title} · ${e.district}'),
-                        trailing: StatusChip(label, color, icon: icon),
-                        onTap: () => Navigator.of(context).push(slideRoute(AdminEmployeeDetailScreen(e))),
+                        subtitle: Text(e.isOffice ? '${e.title} · ${'Office staff'.tr}' : '${e.title} · ${e.district}'),
+                        trailing: e.isOffice ? StatusChip('Office'.tr, const Color(0xFF7C4DFF), icon: Icons.business_center_outlined) : StatusChip(label.tr, color, icon: icon),
+                        onTap: () => openEmployee(context, e),
+                        onLongPress: () => _changeType(context, e),
                       ),
                     ).enter(i);
                   },
@@ -87,6 +92,21 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
         ),
       ]),
     );
+  }
+}
+
+/// Long-press a person to move them between marketing (GPS tracked) and office staff.
+Future<void> _changeType(BuildContext context, Employee e) async {
+  final to = e.isOffice ? 'field' : 'office';
+  final ok = await confirm(context, 'Change staff type?',
+      trf(e.isOffice ? '{} will become marketing staff and be tracked with GPS.' : '{} will become office staff (no GPS tracking).', [e.name]),
+      action: 'Change');
+  if (!ok || !context.mounted) return;
+  try {
+    await context.read<AccessProvider>().setStaffType(e, to);
+    if (context.mounted) toast(context, 'Staff type updated', type: ToastType.success);
+  } catch (err) {
+    if (context.mounted) toast(context, 'Could not save: ${err.toString().replaceFirst('Exception: ', '')}', type: ToastType.error);
   }
 }
 
@@ -105,6 +125,7 @@ class _CreateUserDialogState extends State<_CreateUserDialog> {
   bool _busy = false;
   String? _error;
   Map<String, dynamic>? _created;
+  String _staffType = 'field';
 
   Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
@@ -113,7 +134,7 @@ class _CreateUserDialogState extends State<_CreateUserDialog> {
       _error = null;
     });
     try {
-      final res = await context.read<AccessProvider>().createUser(_name.text, _email.text, _password.text);
+      final res = await context.read<AccessProvider>().createUser(_name.text, _email.text, _password.text, staffType: _staffType);
       setState(() => _created = res);
     } catch (e) {
       setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
@@ -129,9 +150,9 @@ class _CreateUserDialogState extends State<_CreateUserDialog> {
       final text = 'Email: ${c['email']}\nPassword: ${c['password']}';
       return AlertDialog(
         icon: const Icon(Icons.check_circle, color: AppColors.green, size: 40),
-        title: const Text('Employee created'),
+        title: Text('Employee created'.tr),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Text('These credentials were sent to them as an in-app message.', textAlign: TextAlign.center),
+          Text('These credentials were sent to them as an in-app message. You can also share them by WhatsApp, SMS or email.'.tr, textAlign: TextAlign.center),
           const SizedBox(height: 12),
           Container(
             width: double.infinity,
@@ -147,28 +168,49 @@ class _CreateUserDialogState extends State<_CreateUserDialog> {
               snack(context, 'Copied');
             },
             icon: const Icon(Icons.copy, size: 18),
-            label: const Text('Copy'),
+            label: Text('Copy'.tr),
           ),
-          FilledButton(onPressed: () => Navigator.pop(context), style: FilledButton.styleFrom(minimumSize: const Size(80, 44)), child: const Text('Done')),
+          TextButton.icon(
+            onPressed: () => SharePlus.instance.share(ShareParams(
+              subject: 'Your Merit Publication login',
+              text: 'Hello ${_name.text.trim()},\n\nYour Merit Publication app login:\n$text\n\nPlease keep these safe.',
+            )),
+            icon: const Icon(Icons.share, size: 18),
+            label: Text('Share'.tr),
+          ),
+          FilledButton(onPressed: () => Navigator.pop(context), style: FilledButton.styleFrom(minimumSize: const Size(80, 44)), child: Text('Done'.tr)),
         ],
       );
     }
     return AlertDialog(
-      title: const Text('New Employee'),
+      title: Text('New Employee'.tr),
       content: Form(
         key: _form,
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          GlowTextField(controller: _name, textCapitalization: TextCapitalization.words, decoration: const InputDecoration(labelText: 'Name'), validator: (v) => (v ?? '').trim().isEmpty ? 'Required' : null),
+          SegmentedButton<String>(
+            showSelectedIcon: false,
+            segments: [
+              ButtonSegment(value: 'field', icon: const Icon(Icons.directions_walk), label: Text('Marketing'.tr)),
+              ButtonSegment(value: 'office', icon: const Icon(Icons.business_center_outlined), label: Text('Office'.tr)),
+            ],
+            selected: {_staffType},
+            onSelectionChanged: (s) => setState(() => _staffType = s.first),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 6, bottom: 12),
+            child: Text((_staffType == 'office' ? 'Office staff get tasks, calls and leave. No GPS tracking.' : 'Marketing staff are tracked on the field with GPS.').tr, style: const TextStyle(color: AppColors.muted, fontSize: 12.5)),
+          ),
+          GlowTextField(controller: _name, textCapitalization: TextCapitalization.words, decoration: InputDecoration(labelText: 'Name'.tr), validator: (v) => (v ?? '').trim().isEmpty ? 'Required' : null),
           const SizedBox(height: 12),
-          GlowTextField(controller: _email, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Email'), validator: (v) => RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch((v ?? '').trim()) ? null : 'Enter a valid email'),
+          GlowTextField(controller: _email, keyboardType: TextInputType.emailAddress, decoration: InputDecoration(labelText: 'Email'.tr), validator: (v) => RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch((v ?? '').trim()) ? null : 'Enter a valid email'),
           const SizedBox(height: 12),
-          GlowTextField(controller: _password, decoration: const InputDecoration(labelText: 'Password', helperText: 'Leave blank to auto-generate'), validator: (v) => (v ?? '').isNotEmpty && v!.length < 8 ? 'At least 8 characters' : null),
+          GlowTextField(controller: _password, decoration: InputDecoration(labelText: 'Password'.tr, helperText: 'Leave blank to auto-generate'.tr), validator: (v) => (v ?? '').isNotEmpty && v!.length < 8 ? 'At least 8 characters' : null),
           if (_error != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(_error!, style: const TextStyle(color: AppColors.red))),
         ]),
       ),
       actions: [
-        TextButton(onPressed: _busy ? null : () => Navigator.pop(context), child: const Text('Cancel')),
-        FilledButton(onPressed: _busy ? null : _save, style: FilledButton.styleFrom(minimumSize: const Size(120, 44)), child: const Text('Create & Send')),
+        TextButton(onPressed: _busy ? null : () => Navigator.pop(context), child: Text('Cancel'.tr)),
+        FilledButton(onPressed: _busy ? null : _save, style: FilledButton.styleFrom(minimumSize: const Size(120, 44)), child: Text('Create & Send'.tr)),
       ],
     );
   }

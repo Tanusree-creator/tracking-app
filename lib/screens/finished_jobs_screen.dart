@@ -10,6 +10,7 @@ import '../widgets/anim.dart';
 import '../widgets/common.dart';
 import '../widgets/glass.dart';
 import 'route_map_screen.dart';
+import '../l10n/l10n.dart';
 
 /// Jobs finished today. Tapping one opens the route walked between its start and finish.
 class FinishedJobsScreen extends StatelessWidget {
@@ -20,7 +21,7 @@ class FinishedJobsScreen extends StatelessWidget {
     final jobs = context.watch<TrackingProvider>().finishedToday;
     final t = DateFormat('h:mm a');
     return Scaffold(
-      appBar: AppBar(title: const Text('Jobs finished today')),
+      appBar: AppBar(title: Text('Jobs finished today'.tr)),
       body: jobs.isEmpty
           ? const EmptyState(Icons.task_alt, 'No jobs finished yet')
           : ListView.separated(

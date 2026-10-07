@@ -8,7 +8,9 @@ import 'package:latlong2/latlong.dart';
 
 import '../services/demo_data.dart';
 import '../theme/app_theme.dart';
+import '../widgets/anim.dart';
 import '../widgets/dark_tracking_map.dart';
+import '../l10n/l10n.dart';
 
 class PickedPlace {
   final String name;
@@ -25,7 +27,7 @@ class LocationPickerScreen extends StatefulWidget {
   const LocationPickerScreen({super.key, this.start});
 
   static Future<PickedPlace?> pick(BuildContext context, {LatLng? start}) =>
-      Navigator.of(context).push<PickedPlace>(MaterialPageRoute(builder: (_) => LocationPickerScreen(start: start)));
+      Navigator.of(context).push<PickedPlace>(slideRoute(LocationPickerScreen(start: start)));
 
   @override
   State<LocationPickerScreen> createState() => _LocationPickerScreenState();
@@ -115,7 +117,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
   Widget build(BuildContext context) {
     final center = widget.start ?? DemoData.center;
     return Scaffold(
-      appBar: AppBar(title: const Text('Choose location')),
+      appBar: AppBar(title: Text('Choose location'.tr)),
       body: Stack(children: [
         FlutterMap(
           mapController: _map,
@@ -149,7 +151,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                 textInputAction: TextInputAction.search,
                 onSubmitted: (v) => _search(v.trim()),
                 decoration: InputDecoration(
-                  hintText: 'Search address or place',
+                  hintText: 'Search address or place'.tr,
                   prefixIcon: const Icon(Icons.search),
                   suffixIcon: _searching
                       ? const Padding(padding: EdgeInsets.all(12), child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
@@ -171,7 +173,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                   border: Border.all(color: AppColors.edge(Theme.of(context).brightness == Brightness.dark)),
                 ),
                 child: _results.isEmpty
-                    ? Padding(padding: const EdgeInsets.all(16), child: Text(_msg!, style: const TextStyle(color: AppColors.muted)))
+                    ? Padding(padding: const EdgeInsets.all(16), child: Text(_msg!.tr, style: const TextStyle(color: AppColors.muted)))
                     : ListView(shrinkWrap: true, padding: EdgeInsets.zero, children: [
                         for (final r in _results)
                           ListTile(
@@ -200,11 +202,11 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                 ]),
               )
             else
-              const Padding(
+              Padding(
                 padding: EdgeInsets.only(bottom: 10),
-                child: Text('Search above, or tap the map to drop a pin.', style: TextStyle(color: AppColors.muted)),
+                child: Text('Search above, or tap the map to drop a pin.'.tr, style: TextStyle(color: AppColors.muted)),
               ),
-            FilledButton(onPressed: _picked == null ? null : () => Navigator.pop(context, _picked), child: const Text('Use this location')),
+            FilledButton(onPressed: _picked == null ? null : () => Navigator.pop(context, _picked), child: Text('Use this location'.tr)),
           ]),
         ),
       ),
@@ -229,12 +231,12 @@ class LocationField extends FormField<PickedPlace> {
             },
             child: InputDecorator(
               decoration: InputDecoration(
-                labelText: 'Visit location',
+                labelText: 'Visit location'.tr,
                 prefixIcon: const Icon(Icons.place_outlined),
                 suffixIcon: const Icon(Icons.map_outlined),
                 errorText: state.errorText,
               ),
-              child: Text(state.value?.name ?? 'Search or pick on map',
+              child: Text(state.value?.name ?? 'Search or pick on map'.tr,
                   maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: state.value == null ? AppColors.muted : null)),
             ),
           ),

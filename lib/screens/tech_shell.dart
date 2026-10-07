@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 
 import '../models/models.dart';
 import '../services/access_provider.dart';
+import '../services/staff_provider.dart';
 import '../services/tracking_provider.dart';
+import '../widgets/anim.dart';
 import '../widgets/glass.dart';
 import '../widgets/sticky_notification_banner.dart';
 import 'history_screen.dart';
@@ -27,6 +29,7 @@ class _TechShellState extends State<TechShell> {
     super.initState();
     final me = context.read<AccessProvider>().me!;
     context.read<TrackingProvider>().load(me.id);
+    context.read<StaffProvider>().start(office: false); // leave requests + announcements
   }
 
   static const _pages = [HomeScreen(), TasksScreen(), TrackingScreen(), HistoryScreen(), ProfileScreen()];
@@ -36,7 +39,7 @@ class _TechShellState extends State<TechShell> {
         extendBody: true,
         body: Column(children: [
           const StickyNotificationBanner(audience: AlertAudience.employee),
-          Expanded(child: IndexedStack(index: _i, children: _pages)),
+          Expanded(child: AnimatedTabStack(index: _i, children: _pages)),
         ]),
         bottomNavigationBar: GlassBottomNav(
           index: _i,

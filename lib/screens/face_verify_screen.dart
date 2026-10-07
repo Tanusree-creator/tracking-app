@@ -12,6 +12,7 @@ import 'package:provider/provider.dart';
 import '../services/access_provider.dart';
 import '../services/api.dart';
 import '../theme/app_theme.dart';
+import '../l10n/l10n.dart';
 
 enum FaceKind { signIn, clockIn, breakEnd }
 
@@ -274,14 +275,14 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen> with SingleTickerPr
               child: Column(children: [
                 const Icon(Icons.no_photography_outlined, size: 56, color: AppColors.red),
                 const SizedBox(height: 16),
-                Text(_error!, textAlign: TextAlign.center),
+                Text(_error!.tr, textAlign: TextAlign.center),
                 const SizedBox(height: 16),
                 FilledButton(
                   onPressed: () {
                     setState(() => _error = null);
                     _init();
                   },
-                  child: const Text('Try again'),
+                  child: Text('Try again'.tr),
                 ),
               ]),
             )
@@ -324,13 +325,13 @@ class _FaceVerifyScreenState extends State<FaceVerifyScreen> with SingleTickerPr
               ]),
             ),
             const SizedBox(height: 36),
-            Text(_title, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+            Text(_title.tr, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
             const SizedBox(height: 10),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 40),
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 200),
-                child: Text(_hint,
+                child: Text(_hint.tr,
                     key: ValueKey(_hint), textAlign: TextAlign.center, style: const TextStyle(color: AppColors.muted, fontSize: 16)),
               ),
             ),

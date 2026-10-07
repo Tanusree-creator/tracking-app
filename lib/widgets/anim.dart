@@ -3,20 +3,112 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import 'glass.dart';
 
-/// Horizontal slide used for screen changes (like the swipe panels in the reference).
+/// Every pushed page gets its own copy of the glass background. Pages are transparent, so without this the
+/// previous screen shows through while the new one slides in.
+class _OpaquePage extends StatelessWidget {
+  final Widget child;
+  const _OpaquePage(this.child);
+
+  @override
+  Widget build(BuildContext context) => ColoredBox(
+        color: AppColors.bg(Theme.of(context).brightness == Brightness.dark),
+        child: Stack(children: [const Positioned.fill(child: GlassBackground()), child]),
+      );
+}
+
+/// Screen change used everywhere: the new page slides in from the right over an opaque background while the
+/// page underneath drifts left and dims a little (parallax), so the two never overlap messily.
 Route<T> slideRoute<T>(Widget page) => PageRouteBuilder<T>(
-      transitionDuration: const Duration(milliseconds: 380),
+      transitionDuration: const Duration(milliseconds: 360),
       reverseTransitionDuration: const Duration(milliseconds: 300),
-      pageBuilder: (_, _, _) => page,
+      pageBuilder: (_, _, _) => _OpaquePage(page),
       transitionsBuilder: (_, a, sa, child) {
-        final curved = CurvedAnimation(parent: a, curve: Curves.easeOutCubic);
+        final inCurve = CurvedAnimation(parent: a, curve: Curves.easeOutCubic, reverseCurve: Curves.easeInCubic);
+        final outCurve = CurvedAnimation(parent: sa, curve: Curves.easeOutCubic, reverseCurve: Curves.easeInCubic);
         return SlideTransition(
-          position: Tween(begin: const Offset(1, 0), end: Offset.zero).animate(curved),
-          child: FadeTransition(opacity: Tween(begin: .6, end: 1.0).animate(curved), child: child),
+          position: Tween(begin: Offset.zero, end: const Offset(-.22, 0)).animate(outCurve),
+          child: FadeTransition(
+            opacity: Tween(begin: 1.0, end: .55).animate(outCurve),
+            child: SlideTransition(position: Tween(begin: const Offset(1, 0), end: Offset.zero).animate(inCurve), child: child),
+          ),
         );
       },
     );
+
+/// Used when the whole app changes (splash -> app, sign in -> app, sign out): a calm fade with a slight zoom.
+Route<T> fadeRoute<T>(Widget page) => PageRouteBuilder<T>(
+      transitionDuration: const Duration(milliseconds: 450),
+      reverseTransitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (_, _, _) => _OpaquePage(page),
+      transitionsBuilder: (_, a, _, child) {
+        final c = CurvedAnimation(parent: a, curve: Curves.easeOutCubic);
+        return FadeTransition(
+          opacity: c,
+          child: ScaleTransition(scale: Tween(begin: .97, end: 1.0).animate(c), child: child),
+        );
+      },
+    );
+
+/// Bottom-navigation pages. Every page stays alive (scroll position and loaded data are kept), and the page you
+/// switch to fades and rises into place instead of popping in.
+class AnimatedTabStack extends StatefulWidget {
+  final int index;
+  final List<Widget> children;
+  const AnimatedTabStack({super.key, required this.index, required this.children});
+
+  @override
+  State<AnimatedTabStack> createState() => _AnimatedTabStackState();
+}
+
+class _AnimatedTabStackState extends State<AnimatedTabStack> with SingleTickerProviderStateMixin {
+  late final _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 280), value: 1);
+  late final _curve = CurvedAnimation(parent: _c, curve: Curves.easeOutCubic);
+  final _built = <int>{};
+
+  @override
+  void initState() {
+    super.initState();
+    _built.add(widget.index);
+  }
+
+  @override
+  void didUpdateWidget(AnimatedTabStack old) {
+    super.didUpdateWidget(old);
+    if (old.index != widget.index) {
+      _built.add(widget.index);
+      _c.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Stack(fit: StackFit.expand, children: [
+        for (var i = 0; i < widget.children.length; i++)
+          if (_built.contains(i)) // pages are created the first time they are opened
+            Offstage(
+              offstage: i != widget.index,
+              child: TickerMode(
+                enabled: i == widget.index,
+                child: i == widget.index
+                    ? FadeTransition(
+                        opacity: _curve,
+                        child: SlideTransition(
+                          position: Tween(begin: const Offset(0, .025), end: Offset.zero).animate(_curve),
+                          child: widget.children[i],
+                        ),
+                      )
+                    : widget.children[i],
+              ),
+            ),
+      ]);
+}
 
 /// Number that counts up to [value] whenever it changes.
 class CountUp extends StatelessWidget {

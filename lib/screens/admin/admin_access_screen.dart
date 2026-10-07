@@ -6,6 +6,7 @@ import '../../services/access_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import '../../widgets/glass.dart';
+import '../../l10n/l10n.dart';
 
 class AdminAccessScreen extends StatelessWidget {
   const AdminAccessScreen({super.key});
@@ -13,7 +14,7 @@ class AdminAccessScreen extends StatelessWidget {
   Future<void> _decide(BuildContext context, Employee e, AccessStatus s) async {
     try {
       await context.read<AccessProvider>().setStatus(e, s);
-      if (context.mounted) snack(context, '${e.name} ${s == AccessStatus.approved ? 'approved' : 'rejected'}');
+      if (context.mounted) snack(context, '${e.name} ${(s == AccessStatus.approved ? 'approved' : 'rejected').tr}');
     } catch (err) {
       if (context.mounted) snack(context, err.toString().replaceFirst('Exception: ', ''));
     }
@@ -34,7 +35,7 @@ class AdminAccessScreen extends StatelessWidget {
         else if (reqs.isEmpty)
           const EmptyState(Icons.inbox_outlined, 'No pending requests right now.')
         else ...[
-          const Text('Access Requests', style: TextStyle(color: AppColors.muted)),
+          Text('Access Requests'.tr, style: TextStyle(color: AppColors.muted)),
           const SizedBox(height: 8),
           for (final r in reqs)
             Padding(
@@ -59,7 +60,7 @@ class AdminAccessScreen extends StatelessWidget {
                         child: OutlinedButton(
                           onPressed: () => _decide(context, r.employee, AccessStatus.rejected),
                           style: OutlinedButton.styleFrom(foregroundColor: AppColors.red, side: const BorderSide(color: AppColors.red)),
-                          child: const Text('Reject'),
+                          child: Text('Reject'.tr),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -67,7 +68,7 @@ class AdminAccessScreen extends StatelessWidget {
                         child: FilledButton(
                           onPressed: () => _decide(context, r.employee, AccessStatus.approved),
                           style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(44)),
-                          child: const Text('Approve'),
+                          child: Text('Approve'.tr),
                         ),
                       ),
                     ]),
